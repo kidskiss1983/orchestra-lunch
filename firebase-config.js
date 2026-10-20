@@ -1,6 +1,6 @@
 // 請在 Firebase Console 建立「網頁應用程式」，將設定值貼到下方。
 // apiKey 等前端設定值不是資料庫安全邊界；真正的保護在 Firestore Security Rules。
-const firebaseConfig = {
+export const firebaseConfig = {
     apiKey: "AIzaSyAO7zytydbcpBtY9ces0GASg00t52glJaE",
     authDomain: "orchestra-lunch-2027.firebaseapp.com",
     projectId: "orchestra-lunch-2027",
