@@ -13,5 +13,5 @@ export const firebaseConfig = {
 // 管理者登入一次後，從 Firebase Console → Authentication → Users 複製 UID，貼在這裡。
 // 同一個 UID 也必須加入 firestore.rules 的 ADMIN_UIDS 清單。
 export const ADMIN_UIDS = [
-  "請替換成管理者Firebase UID"
+  "1:550445432919:web:a12f67dd1485df2c326312"
 ];
