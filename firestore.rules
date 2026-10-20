@@ -4,10 +4,10 @@ service cloud.firestore {
     // 請把實際管理者 Firebase Authentication UID 加進清單。
     function isAdmin() {
       return request.auth != null && request.auth.uid in [
-        "請替換成管理者Firebase UID"
+        "paylin1@gmail.com"
       ];
     }
-    function signedIn() { return request.auth != null; }
+    function signedIn(Anonymous) { return request.auth != null; }
     function eventExists(eventId) {
       return exists(/databases/$(database)/documents/lunchEvents/$(eventId));
     }
