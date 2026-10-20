@@ -7,7 +7,7 @@ service cloud.firestore {
         "RhCxF66A4nTkjzzMERpThH7Mey03"
       ];
     }
-    function signedIn(Anonymous) { return request.auth != null; }
+    function signedIn() { return request.auth != null; }
     function eventExists(eventId) {
       return exists(/databases/$(database)/documents/lunchEvents/$(eventId));
     }
