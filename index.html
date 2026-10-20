@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#334b3d"><meta name="description" content="弦樂團假日加練午餐訂餐、菜單管理與訂單統計">
+  <title>弦樂團｜假日加練訂餐</title><link rel="stylesheet" href="styles.css">
+  <script type="importmap">{"imports":{"firebase/app":"https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js","firebase/auth":"https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js","firebase/firestore":"https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js"}}</script>
+</head>
+<body>
+<header class="site-header"><div class="brand-mark">♪</div><div><p class="eyebrow">PUQIAN STRING ORCHESTRA</p><h1>弦樂團假日加練訂餐</h1><p class="subtitle">家長共用連結・手機填單・自動統計</p></div></header>
+<main>
+  <div id="globalMessage" class="notice" role="status">正在初始化，請稍候……</div>
+  <nav class="tabs" aria-label="功能切換"><button class="tab active" data-view="familyView">家長訂餐</button><button class="tab" data-view="adminView">管理者專區</button></nav>
+  <section id="familyView" class="view">
+    <div class="section-heading"><div><p class="eyebrow">ORDER LUNCH</p><h2>填寫午餐訂單</h2></div><span class="tag">家長免註冊</span></div>
+    <p class="helper">選擇加練場次與團員，再填寫餐點數量。送出後，同一個瀏覽器可在截止前更新。</p>
+    <label for="familyEvent">加練場次</label><select id="familyEvent"><option value="">載入中……</option></select><p id="eventInfo" class="helper"></p>
+    <label for="familyMember">團員姓名</label><select id="familyMember"><option value="">請先選擇場次</option></select>
+    <div id="familyMenu" class="menu-list"><p class="empty">管理者尚未建立菜單。</p></div>
+    <label for="familyNote">備註（選填）</label><textarea id="familyNote" rows="2" placeholder="例如：不要香菜、飯少一點。請先確認餐廳能否配合特殊需求。"></textarea>
+    <button id="submitOrder" class="button primary wide">送出訂單</button><div id="familyMessage" class="notice hidden" role="status"></div>
+    <p class="fineprint">隱私提醒：本系統使用背景匿名識別，不需要家長註冊。共用連結持有人都可能替團員送出新訂單；已由其他裝置建立的訂單，為避免互相覆蓋，需請管理者協助修改。</p>
+  </section>
+  <section id="adminView" class="view hidden">
+    <div class="section-heading"><div><p class="eyebrow">ADMINISTRATION</p><h2>管理者專區</h2></div><span id="adminBadge" class="tag">尚未登入</span></div>
+    <p class="helper">使用已授權的 Google 帳號登入。管理權限必須同時設定在本頁設定檔與 Firestore 安全規則中。</p>
+    <div class="actions"><button id="googleLogin" class="button primary">使用 Google 登入</button><button id="googleLogout" class="button secondary hidden">登出</button></div>
+    <div id="uidNotice" class="notice hidden"></div>
+    <div id="adminTools" class="hidden">
+      <div class="subpanel"><h3>一、建立或編輯加練場次</h3>
+        <input id="editingEventId" type="hidden">
+        <div class="form-grid"><div><label for="eventName">場次名稱</label><input id="eventName" placeholder="例如：週六弦樂團加練"></div><div><label for="eventDate">日期</label><input id="eventDate" type="date"></div><div><label for="eventDeadline">訂餐截止時間</label><input id="eventDeadline" type="datetime-local"></div><div><label for="restaurantName">餐廳名稱</label><input id="restaurantName" placeholder="餐廳名稱"></div></div>
+        <label for="menuFile">上傳菜單照片或 PDF</label><input id="menuFile" type="file" accept="image/*,.pdf,application/pdf">
+        <div class="actions"><button id="ocrButton" class="button secondary">辨識照片／PDF 文字</button><button id="loadEditButton" class="button secondary">載入選取場次編輯</button><button id="newItemButton" class="button secondary">＋手動新增餐點</button></div>
+        <label for="menuText">菜單文字（可貼上、校正辨識結果）</label><textarea id="menuText" rows="5" placeholder="例如：\n雞腿便當 100\n排骨便當 110\n素食便當 100"></textarea>
+        <div class="actions"><button id="parseTextButton" class="button secondary">從文字解析餐點</button><button id="saveEventButton" class="button primary">儲存場次與菜單</button><button id="resetEventButton" class="button ghost">清空表單</button></div>
+        <p class="fineprint">辨識結果只作為草稿。送出前請逐項核對品名與價格；手寫、模糊照片及特殊排版可能辨識不準。PDF 最多辨識前 8 頁。</p>
+        <div id="menuEditor" class="menu-editor"></div>
+      </div>
+      <div class="subpanel"><h3>二、長期團員名冊</h3><div class="form-grid"><div><label for="newMemberName">團員姓名</label><input id="newMemberName" placeholder="輸入姓名"></div><div><label for="newMemberClass">班別（選填）</label><input id="newMemberClass" placeholder="例如：初階班"></div></div><button id="addMemberButton" class="button primary">新增團員</button>
+        <label for="bulkMembers">批次匯入（每行一位；格式：姓名,班別）</label><textarea id="bulkMembers" rows="4" placeholder="王小明,初階班&#10;李小華,進階班"></textarea><button id="bulkImportButton" class="button secondary">匯入名單</button><div id="membersTable"></div>
+      </div>
+      <div class="subpanel"><h3>三、訂單統計與報表</h3><label for="adminEvent">選擇場次</label><select id="adminEvent"><option value="">尚無場次</option></select><div id="summary"></div><div class="actions print-hide"><button id="printButton" class="button primary">列印／另存 PDF</button><button id="excelButton" class="button secondary">下載 Excel</button><button id="closeEventButton" class="button danger">關閉訂餐</button></div><p class="fineprint">PDF：按列印後，在系統列印視窗選「另存為 PDF」。Excel 會包含訂單明細與餐點統計兩個工作表。</p></div>
+    </div>
+  </section>
+  <footer><span>弦樂團假日加練訂餐系統</span><span>請在截止前確認訂單</span></footer>
+</main>
+<script type="module" src="app.js"></script>
+</body></html>
