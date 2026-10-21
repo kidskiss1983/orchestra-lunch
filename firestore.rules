@@ -4,7 +4,7 @@ service cloud.firestore {
     // 請把實際管理者 Firebase Authentication UID 加進清單。
     function isAdmin() {
       return request.auth != null && request.auth.uid in [
-        "RhCxF66A4nTkjzzMERpThH7Mey03"
+        "OrZqhFzPHXUOwcU0GFJqtwmRPm63"
       ];
     }
     function signedIn() { return request.auth != null; }
