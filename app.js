@@ -57,14 +57,28 @@ function parseMenuText(text){const found=[];for(const raw of text.split(/\r?\n/)
 async function recognizeText(source) {
   say("正在準備繁體中文菜單辨識……");
 
-  const Tesseract = await import(
-    "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js"
+  const module = await import(
+    "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm"
   );
 
-  const worker = await Tesseract.createWorker("chi_tra+eng", 1, {
+  const Tesseract = module.default || module;
+  const createWorker =
+    Tesseract.createWorker || module.createWorker;
+
+  if (typeof createWorker !== "function") {
+    throw new Error(
+      "Tesseract 模組載入格式不符，請檢查 CDN 版本。"
+    );
+  }
+
+  const worker = await createWorker("chi_tra+eng", 1, {
     logger: (m) => {
       if (m.status === "recognizing text") {
-        say(`正在辨識菜單：${Math.round((m.progress || 0) * 100)}%`);
+        say(
+          `正在辨識菜單：${Math.round(
+            (m.progress || 0) * 100
+          )}%`
+        );
       }
     }
   });
@@ -76,7 +90,6 @@ async function recognizeText(source) {
     await worker.terminate();
   }
 }
-
 async function recognizeFile(file){if(!file)throw new Error("請先選擇照片或 PDF。");if(file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf")){const pdfjs=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";const pdf=await pdfjs.getDocument({data:await file.arrayBuffer()}).promise;let text="";for(let n=1;n<=Math.min(pdf.numPages,8);n++){say(`讀取 PDF 第 ${n}/${Math.min(pdf.numPages,8)} 頁……`);const page=await pdf.getPage(n),viewport=page.getViewport({scale:1.5}),canvas=document.createElement("canvas");canvas.width=viewport.width;canvas.height=viewport.height;await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;text+=`\n${await recognizeText(canvas)}`;}return text;}return recognizeText(file);}
 async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").value,m=activeMembers().find(x=>x.id===memberId);if(!e||!m)return alert("請選擇場次與團員。");if(!isOpen(e))return alert("此場次已截止或關閉。");const chosen=[...document.querySelectorAll("[data-qty]")].map(el=>{const it=e.items.find(x=>x.id===el.dataset.qty);return it?{itemId:it.id,name:it.name,price:Number(it.price||0),qty:Number(el.value)}:null}).filter(Boolean);if(!chosen.some(i=>i.qty>0))return alert("請至少選擇一份餐點。");if(!auth.currentUser)await signInAnonymously(auth);const id=`${e.id}_${m.id}`,existing=orders.find(o=>o.id===id);const payload={eventId:e.id,eventName:e.name,eventDate:e.date,memberId:m.id,memberName:m.name,items:chosen,note:$("familyNote").value.trim(),ownerUid:existing?.ownerUid||auth.currentUser.uid,updatedAt:serverTimestamp()};try{if(existing&&existing.ownerUid!==auth.currentUser.uid)throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");if(existing)await updateDoc(doc(db,"lunchOrders",id),payload);else await setDoc(doc(db,"lunchOrders",id),{...payload,createdAt:serverTimestamp()});sayFamily("訂單已儲存！請確認餐點與備註正確。","ok");}catch(e){sayFamily("儲存失敗："+e.message,"error");}}
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
