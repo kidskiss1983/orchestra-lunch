@@ -31,7 +31,7 @@
         <input id="editingEventId" type="hidden">
         <div class="form-grid"><div><label for="eventName">場次名稱</label><input id="eventName" placeholder="例如：週六弦樂團加練"></div><div><label for="eventDate">日期</label><input id="eventDate" type="date"></div><div><label for="eventDeadline">訂餐截止時間</label><input id="eventDeadline" type="datetime-local"></div><div><label for="restaurantName">餐廳名稱</label><input id="restaurantName" placeholder="餐廳名稱"></div></div>
         <label for="menuFile">上傳菜單照片或 PDF</label><input id="menuFile" type="file" accept="image/*,.pdf,application/pdf">
-        <div class="actions"><button id="ocrButton" class="button secondary">辨識照片／PDF 文字</button><button id="loadEditButton" class="button secondary">載入選取場次編輯</button><button id="newItemButton" class="button secondary">＋手動新增餐點</button></div>
+        <div class="actions"><button id="loadEditButton" class="button secondary">載入選取場次編輯</button><button id="newItemButton" class="button secondary">＋手動新增餐點</button></div>
         <label for="menuText">菜單文字（可貼上、校正辨識結果）</label><textarea id="menuText" rows="5" placeholder="例如：\n雞腿便當 100\n排骨便當 110\n素食便當 100"></textarea>
         <div class="actions"><button id="parseTextButton" class="button secondary">從文字解析餐點</button><button id="saveEventButton" class="button primary">儲存場次與菜單</button><button id="resetEventButton" class="button ghost">清空表單</button></div>
         <p class="fineprint">辨識結果只作為草稿。送出前請逐項核對品名與價格；手寫、模糊照片及特殊排版可能辨識不準。PDF 最多辨識前 8 頁。</p>
