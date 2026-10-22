@@ -193,6 +193,7 @@ function renderMemberOptions() {
 function ownOrder(eventId,memberId){return orders.find(o=>o.eventId===eventId&&o.memberId===memberId&&o.ownerUid===currentUser?.uid);}
 function renderFamilyForm(){
  const e=selectedEvent(), memberId=$("familyMember").value;
+ renderFamilyOrderOverview();
  $("eventInfo").textContent=e?`${e.restaurant||"餐廳未設定"}｜${e.date||""}｜${isOpen(e)?"開放訂餐":"已截止或關閉"}`:"";
  const box=$("familyMenu");
  if(!e){box.innerHTML='<p class="empty">目前沒有開放訂餐的場次。</p>';$("submitOrder").disabled=true;return;}
