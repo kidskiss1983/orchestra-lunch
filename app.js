@@ -54,8 +54,9 @@ function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$(
 function renderItemEditor(){ $("menuEditor").innerHTML=draftItems.map((it,i)=>`<div class="editor-row"><div><label>餐點名稱</label><input data-item-name="${i}" value="${safe(it.name)}" placeholder="餐點名稱"></div><div><label>價格（元）</label><input data-item-price="${i}" type="number" min="0" value="${Number(it.price||0)}"></div><button class="button danger" data-item-remove="${i}">刪除</button></div>`).join("");document.querySelectorAll("[data-item-name]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemName)].name=el.value.trim());document.querySelectorAll("[data-item-price]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemPrice)].price=Math.max(0,Number(el.value||0)));document.querySelectorAll("[data-item-remove]").forEach(el=>el.onclick=()=>{draftItems.splice(Number(el.dataset.itemRemove),1);renderItemEditor();});}
 function parseMenuText(text){const found=[];for(const raw of text.split(/\r?\n/)){const line=raw.trim();if(!line)continue;const m=line.match(/^(.+?)[\s　:：$＄-]+(?:NT\$?\s*)?(\d{1,5})(?:\s*元)?$/i);if(m){const name=m[1].replace(/^[•●▪\-*\s]+|[\s:：]+$/g,"").trim();if(name)found.push({id:crypto.randomUUID(),name,price:Number(m[2])});}}return found;}
 
+
 async function recognizeText(source) {
-  say("正在準備繁體中文菜單辨識……");
+  say("正在改善圖片品質，準備辨識菜單……");
 
   const module = await import(
     "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm"
@@ -66,10 +67,30 @@ async function recognizeText(source) {
     Tesseract.createWorker || module.createWorker;
 
   if (typeof createWorker !== "function") {
-    throw new Error(
-      "Tesseract 模組載入格式不符，請檢查 CDN 版本。"
-    );
+    throw new Error("無法載入 Tesseract.js，請檢查網路連線。");
   }
+
+  // 將圖片放大兩倍，並提高文字對比
+  const bitmap = await createImageBitmap(source);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width * 2;
+  canvas.height = bitmap.height * 2;
+
+  const ctx = canvas.getContext("2d", {
+    willReadFrequently: true
+  });
+
+  ctx.filter = "grayscale(1) contrast(1.5)";
+  ctx.drawImage(
+    bitmap,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  bitmap.close();
 
   const worker = await createWorker("chi_tra+eng", 1, {
     logger: (m) => {
@@ -84,7 +105,7 @@ async function recognizeText(source) {
   });
 
   try {
-    const result = await worker.recognize(source);
+    const result = await worker.recognize(canvas);
     return result.data.text || "";
   } finally {
     await worker.terminate();
