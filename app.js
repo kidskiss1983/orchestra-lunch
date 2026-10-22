@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
-import { getFirestore, collection, doc, getDoc, addDoc, setDoc, updateDoc, onSnapshot, query, where, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot, query, where, serverTimestamp } from "firebase/firestore";
 import { firebaseConfig, ADMIN_UIDS } from "./firebase-config.js";
 
 const $ = id => document.getElementById(id);
