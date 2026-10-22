@@ -52,7 +52,67 @@ function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$(
  $("summary").innerHTML=`<div class="stats"><div class="stat"><span>已提交訂單</span><strong>${rows.length}</strong></div><div class="stat"><span>餐點總份數</span><strong>${qty}</strong></div><div class="stat"><span>預估總金額</span><strong>NT$${amount}</strong></div></div><h4>依餐點統計</h4><div class="table-wrap"><table id="summaryItems"><thead><tr><th>餐點</th><th>單價</th><th>份數</th><th>小計</th></tr></thead><tbody>${Object.entries(totals).map(([n,v])=>`<tr><td>${safe(n)}</td><td>$${v.price}</td><td>${v.qty}</td><td>$${v.qty*v.price}</td></tr>`).join("")||'<tr><td colspan="4">尚無訂單</td></tr>'}</tbody></table></div><h4>團員訂單明細</h4><div class="table-wrap"><table id="summaryOrders"><thead><tr><th>團員</th><th>餐點</th><th>份數</th><th>備註</th><th>金額</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${safe(o.memberName)}</td><td>${safe((o.items||[]).filter(i=>i.qty>0).map(i=>i.name).join("、")||"未選餐")}</td><td>${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0),0)}</td><td>${safe(o.note||"")}</td><td>$${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0)*Number(i.price||0),0)}</td></tr>`).join("")||'<tr><td colspan="5">尚無訂單</td></tr>'}</tbody></table></div><h4>尚未訂餐／未提交</h4><p>${missing.length?missing.map(m=>safe(m.name)).join("、"):"全員皆已提交（仍請核對是否有人自備午餐）"}</p>`;
 }
 function renderItemEditor(){ $("menuEditor").innerHTML=draftItems.map((it,i)=>`<div class="editor-row"><div><label>餐點名稱</label><input data-item-name="${i}" value="${safe(it.name)}" placeholder="餐點名稱"></div><div><label>價格（元）</label><input data-item-price="${i}" type="number" min="0" value="${Number(it.price||0)}"></div><button class="button danger" data-item-remove="${i}">刪除</button></div>`).join("");document.querySelectorAll("[data-item-name]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemName)].name=el.value.trim());document.querySelectorAll("[data-item-price]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemPrice)].price=Math.max(0,Number(el.value||0)));document.querySelectorAll("[data-item-remove]").forEach(el=>el.onclick=()=>{draftItems.splice(Number(el.dataset.itemRemove),1);renderItemEditor();});}
-function parseMenuText(text){const found=[];for(const raw of text.split(/\r?\n/)){const line=raw.trim();if(!line)continue;const m=line.match(/^(.+?)[\s　:：$＄-]+(?:NT\$?\s*)?(\d{1,5})(?:\s*元)?$/i);if(m){const name=m[1].replace(/^[•●▪\-*\s]+|[\s:：]+$/g,"").trim();if(name)found.push({id:crypto.randomUUID(),name,price:Number(m[2])});}}return found;}
+
+function parseMenuText(text) {
+  const found = [];
+  const lines = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+      .replace(/[•●▪■◆◇]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // 價格格式：80、80元、NT$80、$80
+    const priceMatch = line.match(
+      /(?:NT\s*\$?|＄|\$)?\s*(\d{1,4})\s*元?\s*$/i
+    );
+
+    if (!priceMatch) continue;
+
+    const price = Number(priceMatch[1]);
+
+    // 排除明顯不合理的價格
+    if (price < 1 || price > 9999) continue;
+
+    let name = line
+      .slice(0, priceMatch.index)
+      .replace(/[\s:：$＄\-–—]+$/g, "")
+      .trim();
+
+    // 若這一行只有價格，嘗試使用上一行作為餐名
+    if (!name && i > 0) {
+      const previous = lines[i - 1].trim();
+
+      // 上一行不能本身也是價格
+      if (!/(?:NT\s*\$?|＄|\$)?\s*\d{1,4}\s*元?\s*$/i.test(previous)) {
+        name = previous;
+      }
+    }
+
+    // 過濾沒有餐名、純數字及過短的文字
+    if (!name || /^\d+$/.test(name)) continue;
+
+    // 避免重複匯入完全相同的餐名與價格
+    const duplicate = found.some(
+      item => item.name === name && item.price === price
+    );
+
+    if (!duplicate) {
+      found.push({
+        id: crypto.randomUUID(),
+        name,
+        price
+      });
+    }
+  }
+
+  return found;
+}
+
 
 
 async function recognizeText(source) {
