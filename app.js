@@ -177,29 +177,43 @@ $("addMemberButton").addEventListener("click", async () => {
   }
 });
 
+
 $("bulkImportButton").addEventListener("click", async () => {
-  const lines = $("bulkMembers").value
-    .split(/\r?\n/)
-    .map(s => s.trim())
+  const names = $("bulkMembers").value
+    .split(/[\r\n,，、；;]+/)
+    .map(name => name.trim())
     .filter(Boolean);
 
-  let added = 0;
+  // 去除本次名單內重複的姓名
+  const uniqueNames = [...new Set(names)];
 
-  for (const name of lines) {
+  if (uniqueNames.length === 0) {
+    alert("請先輸入團員姓名。");
+    return;
+  }
+
+  let added = 0;
+  let skipped = 0;
+
+  for (const name of uniqueNames) {
     try {
       if (await addMember(name)) {
         added++;
+      } else {
+        skipped++;
       }
     } catch (e) {
       alert(`匯入「${name}」失敗：${e.message}`);
-      break;
+      return;
     }
   }
 
-  alert(`已新增 ${added} 位團員（重複姓名會略過）。`);
+  alert(
+    `匯入完成！\n成功新增：${added} 位\n重複或未填姓名：${skipped} 位`
+  );
+
   $("bulkMembers").value = "";
 });
-
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
   // 管理權限必須是 config 白名單中的 Google UID；匿名登入只用於家長訂單識別。
