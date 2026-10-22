@@ -37,16 +37,23 @@ function renderEventOptions(){
 }
 
 
+
 function renderMemberOptions() {
   const old = $("familyMember").value;
 
+  const sortedMembers = [...activeMembers()].sort((a, b) =>
+    a.name.localeCompare(b.name, "zh-Hant-TW", {
+      usage: "sort"
+    })
+  );
+
   $("familyMember").innerHTML =
     '<option value="">請選擇團員</option>' +
-    activeMembers()
+    sortedMembers
       .map(m => `<option value="${safe(m.id)}">${safe(m.name)}</option>`)
       .join("");
 
-  if (activeMembers().some(m => m.id === old)) {
+  if (sortedMembers.some(m => m.id === old)) {
     $("familyMember").value = old;
   }
 
