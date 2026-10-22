@@ -178,6 +178,7 @@ $("addMemberButton").addEventListener("click", async () => {
   }
 });
 
+
 $("bulkImportButton").addEventListener("click", async () => {
   const names = $("bulkMembers").value
     .split(/[\r\n,，、；;]+/)
@@ -224,12 +225,11 @@ $("bulkImportButton").addEventListener("click", async () => {
     if (added > 0) {
       $("bulkMembers").value = "";
     }
-
-    }
   } finally {
     button.disabled = false;
   }
 });
+
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
   // 管理權限必須是 config 白名單中的 Google UID；匿名登入只用於家長訂單識別。
