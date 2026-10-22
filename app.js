@@ -177,8 +177,6 @@ $("addMemberButton").addEventListener("click", async () => {
   }
 });
 
-
-
 $("bulkImportButton").addEventListener("click", async () => {
   const names = $("bulkMembers").value
     .split(/[\r\n,，、；;]+/)
@@ -192,25 +190,44 @@ $("bulkImportButton").addEventListener("click", async () => {
     return;
   }
 
+  const button = $("bulkImportButton");
+  button.disabled = true;
+
   let added = 0;
   let skipped = 0;
+  const failed = [];
 
-  for (const name of uniqueNames) {
-    try {
-      const result = await addMember(name);
-      if (result) {
-        added++;
-      } else {
-        skipped++;
+  try {
+    for (const name of uniqueNames) {
+      try {
+        const result = await addMember(name);
+
+        if (result) {
+          added++;
+        } else {
+          skipped++;
+        }
+      } catch (e) {
+        failed.push(`${name}：${e.message}`);
       }
-    } catch (e) {
-      alert(`匯入「${name}」失敗：${e.message}`);
-      return;
     }
-  }
 
-  alert(`匯入完成！\n成功新增：${added} 位\n重複姓名：${skipped} 位`);
-  $("bulkMembers").value = "";
+    alert(
+      `批次匯入完成！\n` +
+      `成功新增：${added} 位\n` +
+      `重複姓名：${skipped} 位\n` +
+      `新增失敗：${failed.length} 位` +
+      (failed.length ? `\n\n${failed.join("\n")}` : "")
+    );
+
+    if (added > 0) {
+      $("bulkMembers").value = "";
+    }
+
+    }
+  } finally {
+    button.disabled = false;
+  }
 });
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
