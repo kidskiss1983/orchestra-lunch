@@ -112,92 +112,6 @@ function parseMenuText(text) {
 
   return found;
 }
-
-
-
-
-async function recognizeText(source) {
-  say("正在載入繁體中文辨識模型……");
-
-  const module = await import(
-    "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm"
-  );
-
-  const Tesseract = module.default || module;
-  const createWorker =
-    Tesseract.createWorker || module.createWorker;
-
-  if (typeof createWorker !== "function") {
-    throw new Error("Tesseract.js 載入失敗，請檢查網路。");
-  }
-
-  let bitmap;
-
-  try {
-    bitmap = await createImageBitmap(source);
-
-    const scale = Math.max(
-      2,
-      Math.min(3, 2400 / Math.max(bitmap.width, bitmap.height))
-    );
-
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) {
-      throw new Error("無法建立圖片處理畫布。");
-    }
-
-    // 放大圖片並提高文字對比
-    ctx.filter = "grayscale(1) contrast(1.3)";
-    ctx.drawImage(
-      bitmap,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    const worker = await createWorker("chi_tra", 1, {
-      logger: (m) => {
-        if (m.status === "loading language traineddata") {
-          say("正在下載繁體中文模型，首次使用請稍候……");
-        } else if (m.status === "recognizing text") {
-          say(
-            `正在辨識繁體中文：${Math.round(
-              (m.progress || 0) * 100
-            )}%`
-          );
-        }
-      }
-    });
-
-    try {
-      // 假設菜單主要由不同區塊組成，先採用自動版面分析
-      await worker.setParameters({
-        tessedit_pageseg_mode: "3"
-      });
-
-      const result = await worker.recognize(canvas);
-      const text = result?.data?.text || "";
-
-      if (!text.trim()) {
-        throw new Error("沒有辨識到文字，請換一張較清晰的圖片。");
-      }
-
-      return text;
-    } finally {
-      await worker.terminate();
-    }
-  } finally {
-    if (bitmap) bitmap.close();
-  }
-}
-
-async function recognizeFile(file){if(!file)throw new Error("請先選擇照片或 PDF。");if(file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf")){const pdfjs=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";const pdf=await pdfjs.getDocument({data:await file.arrayBuffer()}).promise;let text="";for(let n=1;n<=Math.min(pdf.numPages,8);n++){say(`讀取 PDF 第 ${n}/${Math.min(pdf.numPages,8)} 頁……`);const page=await pdf.getPage(n),viewport=page.getViewport({scale:1.5}),canvas=document.createElement("canvas");canvas.width=viewport.width;canvas.height=viewport.height;await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;text+=`\n${await recognizeText(canvas)}`;}return text;}return recognizeText(file);}
 async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").value,m=activeMembers().find(x=>x.id===memberId);if(!e||!m)return alert("請選擇場次與團員。");if(!isOpen(e))return alert("此場次已截止或關閉。");const chosen=[...document.querySelectorAll("[data-qty]")].map(el=>{const it=e.items.find(x=>x.id===el.dataset.qty);return it?{itemId:it.id,name:it.name,price:Number(it.price||0),qty:Number(el.value)}:null}).filter(Boolean);if(!chosen.some(i=>i.qty>0))return alert("請至少選擇一份餐點。");if(!auth.currentUser)await signInAnonymously(auth);const id=`${e.id}_${m.id}`,existing=orders.find(o=>o.id===id);const payload={eventId:e.id,eventName:e.name,eventDate:e.date,memberId:m.id,memberName:m.name,items:chosen,note:$("familyNote").value.trim(),ownerUid:existing?.ownerUid||auth.currentUser.uid,updatedAt:serverTimestamp()};try{if(existing&&existing.ownerUid!==auth.currentUser.uid)throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");if(existing)await updateDoc(doc(db,"lunchOrders",id),payload);else await setDoc(doc(db,"lunchOrders",id),{...payload,createdAt:serverTimestamp()});sayFamily("訂單已儲存！請確認餐點與備註正確。","ok");}catch(e){sayFamily("儲存失敗："+e.message,"error");}}
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
 async function saveEvent(){const name=$("eventName").value.trim(),date=$("eventDate").value,deadlineText=$("eventDeadline").value,restaurant=$("restaurantName").value.trim();if(!name||!date)return alert("請填寫場次名稱與日期。");const items=draftItems.map(i=>({id:i.id||crypto.randomUUID(),name:String(i.name||"").trim(),price:Math.max(0,Number(i.price||0))})).filter(i=>i.name);if(!items.length)return alert("請至少新增一個餐點。");const deadline=deadlineText?new Date(deadlineText):"";const payload={name,date,deadline,restaurant,items,status:"open",updatedAt:serverTimestamp(),updatedBy:currentUser.uid};try{const id=$("editingEventId").value;if(id){await updateDoc(doc(db,"lunchEvents",id),payload);alert("場次已更新。");}else{await addDoc(collection(db,"lunchEvents"),{...payload,createdAt:serverTimestamp(),createdBy:currentUser.uid});alert("場次已建立。");}resetEventForm();}catch(e){alert("儲存失敗："+e.message);}}
@@ -211,7 +125,6 @@ $("familyEvent").addEventListener("change",renderFamilyForm);$("familyMember").a
 $("googleLogin").addEventListener("click",async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){alert("Google 登入失敗："+e.message);}});$("googleLogout").addEventListener("click",()=>signOut(auth));
 $("newItemButton").addEventListener("click",()=>{draftItems.push({id:crypto.randomUUID(),name:"",price:0});renderItemEditor();});
 $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("menuText").value);if(!found.length)return alert("未解析到餐點。請使用「餐點名稱 價格」格式，或手動新增。");draftItems=found;renderItemEditor();alert(`解析到 ${found.length} 個餐點，請逐項校正。`);});
-$("ocrButton").addEventListener("click",async()=>{const btn=$("ocrButton");try{btn.disabled=true;const text=await recognizeFile($("menuFile").files[0]);$("menuText").value=text;say("辨識完成。請先檢查菜單文字，再解析成餐點。","ok");}catch(e){alert("菜單辨識失敗："+e.message);}finally{btn.disabled=false;}});
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
 $("addMemberButton").addEventListener("click",async()=>{try{const ok=await addMember($("newMemberName").value,$("newMemberClass").value);if(ok){$("newMemberName").value="";$("newMemberClass").value="";}else alert("名冊已有同名團員，請先確認。");}catch(e){alert("新增失敗："+e.message);}});
 $("bulkImportButton").addEventListener("click",async()=>{const lines=$("bulkMembers").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);let added=0;for(const line of lines){const [name,...rest]=line.split(/[,，\t]/);try{if(await addMember(name,rest.join(" ")))added++;}catch(e){alert(`匯入「${name}」失敗：${e.message}`);break;}}alert(`已新增 ${added} 位團員（重複姓名會略過）。`);$("bulkMembers").value="";});
