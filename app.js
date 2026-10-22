@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
-import { getFirestore, collection, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot, query, where, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot, query, where, serverTimestamp } from "firebase/firestore";
 import { firebaseConfig, ADMIN_UIDS } from "./firebase-config.js";
 
 const $ = id => document.getElementById(id);
@@ -16,17 +16,100 @@ const selectedEvent = () => events.find(e=>e.id===$("familyEvent").value);
 const selectedAdminEvent = () => events.find(e=>e.id===$("adminEvent").value);
 const activeMembers = () => members.filter(m=>m.active !== false);
 function cleanup(){unsubscribers.forEach(fn=>fn());unsubscribers=[];}
+
+async function syncOrderSummaries(orderList) {
+  const summaryRef = collection(db, "lunchOrderSummaries");
+  const snapshot = await getDocs(summaryRef);
+  const batch = writeBatch(db);
+
+  const currentIds = new Set(orderList.map(order => order.id));
+
+  // 移除已不存在的訂單摘要
+  snapshot.docs.forEach(summaryDoc => {
+    if (!currentIds.has(summaryDoc.id)) {
+      batch.delete(summaryDoc.ref);
+    }
+  });
+
+  // 只寫入團員需要查看的資料
+  orderList.forEach(order => {
+    const items = (order.items || [])
+      .filter(item => Number(item.qty || 0) > 0)
+      .map(item => ({
+        name: String(item.name || ""),
+        price: Number(item.price || 0),
+        qty: Number(item.qty || 0)
+      }));
+
+    const totalAmount = items.reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0
+    );
+
+    batch.set(doc(db, "lunchOrderSummaries", order.id), {
+      eventId: String(order.eventId || ""),
+      eventName: String(order.eventName || ""),
+      eventDate: String(order.eventDate || ""),
+      memberName: String(order.memberName || ""),
+      items,
+      totalAmount,
+      updatedAt: serverTimestamp()
+    });
+  });
+
+  if (snapshot.size > 0 || orderList.length > 0) {
+    await batch.commit();
+  }
+}
 function subscribeCollection(name, callback, queryRef=collection(db,name)) {
   const unsub=onSnapshot(queryRef, snap=>callback(snap.docs.map(d=>({id:d.id,...d.data()}))), err=>say(`讀取 ${name} 失敗：${err.message}`,"error"));
   unsubscribers.push(unsub);
 }
+
 function startListeners(){
   cleanup();
-  subscribeCollection("lunchEvents", data=>{events=data.sort((a,b)=>(a.date||"").localeCompare(b.date||"")); renderEventOptions(); renderFamilyForm(); renderSummary();});
-  subscribeCollection("lunchMembers", data=>{members=data.sort((a,b)=>(a.name||"").localeCompare(b.name||"","zh-Hant")); renderMemberOptions(); renderMembersTable();});
-  if(admin) subscribeCollection("lunchOrders", data=>{orders=data;renderSummary();});
-  else if(currentUser) subscribeCollection("lunchOrders", data=>{orders=data;renderFamilyForm();}, query(collection(db,"lunchOrders"),where("ownerUid","==",currentUser.uid)));
+
+  subscribeCollection("lunchEvents", data=>{
+    events=data.sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    renderEventOptions();
+    renderFamilyForm();
+    renderSummary();
+    renderFamilyOrderOverview();
+  });
+
+  subscribeCollection("lunchMembers", data=>{
+    members=data.sort((a,b)=>(a.name||"").localeCompare(b.name||"","zh-Hant"));
+    renderMemberOptions();
+    renderMembersTable();
+  });
+
+  if(admin) {
+    subscribeCollection("lunchOrders", data=>{
+      orders=data;
+      renderSummary();
+      syncOrderSummaries(data).catch(err=>{
+        say("同步團員訂單總覽失敗："+err.message,"error");
+      });
+    });
+  } else if(currentUser) {
+    subscribeCollection(
+      "lunchOrders",
+      data=>{
+        orders=data;
+        renderFamilyForm();
+      },
+      query(collection(db,"lunchOrders"),where("ownerUid","==",currentUser.uid))
+    );
+  }
+
+  if(currentUser) {
+    subscribeCollection("lunchOrderSummaries", data=>{
+      familyOrderSummaries=data;
+      renderFamilyOrderOverview();
+    });
+  }
 }
+
 function renderEventOptions(){
   const open=events.filter(isOpen), prev=$("familyEvent").value;
   $("familyEvent").innerHTML=open.length?open.map(e=>`<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}｜${safe(e.restaurant||"餐廳未填")}</option>`).join(""):'<option value="">目前沒有開放訂餐的場次</option>';
