@@ -178,13 +178,13 @@ $("addMemberButton").addEventListener("click", async () => {
 });
 
 
+
 $("bulkImportButton").addEventListener("click", async () => {
   const names = $("bulkMembers").value
     .split(/[\r\n,，、；;]+/)
     .map(name => name.trim())
     .filter(Boolean);
 
-  // 去除本次名單內重複的姓名
   const uniqueNames = [...new Set(names)];
 
   if (uniqueNames.length === 0) {
@@ -197,7 +197,8 @@ $("bulkImportButton").addEventListener("click", async () => {
 
   for (const name of uniqueNames) {
     try {
-      if (await addMember(name)) {
+      const result = await addMember(name);
+      if (result) {
         added++;
       } else {
         skipped++;
@@ -208,10 +209,7 @@ $("bulkImportButton").addEventListener("click", async () => {
     }
   }
 
-  alert(
-    `匯入完成！\n成功新增：${added} 位\n重複或未填姓名：${skipped} 位`
-  );
-
+  alert(`匯入完成！\n成功新增：${added} 位\n重複姓名：${skipped} 位`);
   $("bulkMembers").value = "";
 });
 onAuthStateChanged(auth,async user=>{
