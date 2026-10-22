@@ -8,6 +8,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 let currentUser = null, admin = false, events = [], members = [], orders = [], draftItems = [], unsubscribers = [];
+let familyOrderSummaries = [];
 const safe = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const say = (message, type="") => { const el=$("globalMessage"); el.textContent=message; el.className="notice"+(type?" "+type:""); };
 const sayFamily = (message, type="") => { const el=$("familyMessage"); el.textContent=message; el.className="notice"+(type?" "+type:""); };
@@ -153,6 +154,57 @@ function renderFamilyForm(){
  box.innerHTML=e.items.map(it=>{const prev=existing?.items?.find(x=>x.itemId===it.id);return `<div class="menu-item"><div><div class="menu-name">${safe(it.name)}</div><div class="menu-price">每份 NT$${Number(it.price||0)}</div></div><div><label class="small-muted" for="qty-${safe(it.id)}">份數</label><select id="qty-${safe(it.id)}" data-qty="${safe(it.id)}" ${!isOpen(e)?"disabled":""}>${Array.from({length:11},(_,n)=>`<option value="${n}" ${Number(prev?.qty||0)===n?"selected":""}>${n} 份</option>`).join("")}</select></div></div>`}).join("");
  $("familyNote").value=existing?.note||"";$("submitOrder").disabled=!isOpen(e);$("submitOrder").textContent=existing?"更新我的訂單":"送出訂單";
 }
+
+function renderFamilyOrderOverview() {
+  const box = document.getElementById("familyOrderOverview");
+  if (!box) return;
+
+  const event = selectedEvent();
+
+  if (!event) {
+    box.innerHTML = '<p class="helper">請先選擇訂餐場次。</p>';
+    return;
+  }
+
+  const summaries = familyOrderSummaries
+    .filter(order => order.eventId === event.id)
+    .sort((a, b) =>
+      (a.memberName || "").localeCompare(b.memberName || "", "zh-Hant")
+    );
+
+  if (!summaries.length) {
+    box.innerHTML = '<p class="helper">目前尚無此場次的訂單，或總覽尚未同步。</p>';
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="family-overview-list">
+      ${summaries.map(order => {
+        const items = (order.items || [])
+          .filter(item => Number(item.qty || 0) > 0);
+
+        const itemText = items.length
+          ? items.map(item =>
+              `${safe(item.name)} × ${Number(item.qty)} 份`
+            ).join("、")
+          : "尚未選擇餐點";
+
+        const total = Number(order.totalAmount || 0);
+
+        return `
+          <div class="menu-item family-overview-item">
+            <div>
+              <div class="menu-name">${safe(order.memberName || "未提供姓名")}</div>
+              <div class="small-muted">${itemText}</div>
+            </div>
+            <div class="menu-price">NT$${total.toLocaleString("zh-TW")}</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <p class="helper">共 ${summaries.length} 筆訂單</p>
+  `;
+}
 function renderMembersTable(){if(!admin)return;$("membersTable").innerHTML=`<p class="helper">啟用團員 ${activeMembers().length} 位。停用只會隱藏於家長選單，不會刪除歷史訂單。</p><div class="table-wrap"><table><thead><tr><th>姓名</th><th>班別</th><th>狀態</th><th>操作</th></tr></thead><tbody>${members.map(m=>`<tr><td>${safe(m.name)}</td><td>${safe(m.className||"")}</td><td>${m.active===false?"已停用":"啟用"}</td><td><button class="button secondary" data-toggle-member="${safe(m.id)}">${m.active===false?"重新啟用":"停用"}</button></td></tr>`).join("")}</tbody></table></div>`;document.querySelectorAll("[data-toggle-member]").forEach(b=>b.onclick=async()=>{const m=members.find(x=>x.id===b.dataset.toggleMember);if(!m)return;try{await updateDoc(doc(db,"lunchMembers",m.id),{active:m.active===false,updatedAt:serverTimestamp()});}catch(e){alert("更新失敗："+e.message);}});}
 function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$("summary").innerHTML='<p class="helper">請先建立場次。</p>';return;}const rows=orders.filter(o=>o.eventId===e.id);const totals={};for(const o of rows)for(const i of o.items||[])if(Number(i.qty)>0){if(!totals[i.name])totals[i.name]={price:Number(i.price||0),qty:0};totals[i.name].qty+=Number(i.qty)}const qty=Object.values(totals).reduce((s,x)=>s+x.qty,0),amount=Object.values(totals).reduce((s,x)=>s+x.qty*x.price,0);const submitted=new Set(rows.filter(o=>(o.items||[]).some(i=>Number(i.qty)>0)).map(o=>o.memberId));const missing=activeMembers().filter(m=>!submitted.has(m.id));
  $("summary").innerHTML=`<div class="stats"><div class="stat"><span>已提交訂單</span><strong>${rows.length}</strong></div><div class="stat"><span>餐點總份數</span><strong>${qty}</strong></div><div class="stat"><span>預估總金額</span><strong>NT$${amount}</strong></div></div><h4>依餐點統計</h4><div class="table-wrap"><table id="summaryItems"><thead><tr><th>餐點</th><th>單價</th><th>份數</th><th>小計</th></tr></thead><tbody>${Object.entries(totals).map(([n,v])=>`<tr><td>${safe(n)}</td><td>$${v.price}</td><td>${v.qty}</td><td>$${v.qty*v.price}</td></tr>`).join("")||'<tr><td colspan="4">尚無訂單</td></tr>'}</tbody></table></div><h4>團員訂單明細</h4><div class="table-wrap"><table id="summaryOrders"><thead><tr><th>團員</th><th>餐點</th><th>份數</th><th>備註</th><th>金額</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${safe(o.memberName)}</td><td>${safe((o.items||[]).filter(i=>i.qty>0).map(i=>i.name).join("、")||"未選餐")}</td><td>${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0),0)}</td><td>${safe(o.note||"")}</td><td>$${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0)*Number(i.price||0),0)}</td></tr>`).join("")||'<tr><td colspan="5">尚無訂單</td></tr>'}</tbody></table></div><h4>尚未訂餐／未提交</h4><p>${missing.length?missing.map(m=>safe(m.name)).join("、"):"全員皆已提交（仍請核對是否有人自備午餐）"}</p>`;
@@ -166,7 +218,7 @@ function parseMenuText(text) {
     .map(line => line.trim())
     .filter(Boolean);
 
-  for (let i = 0; i < lines.length; i++) {
+  for ( i = 0; i < lines.length; i++) {
     const line = lines[i]
       .replace(/[•●▪■◆◇]/g, " ")
       .replace(/\s+/g, " ")
