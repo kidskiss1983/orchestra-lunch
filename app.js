@@ -164,20 +164,6 @@ $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
 $("adminEvent").addEventListener("change",renderSummary);$("printButton").addEventListener("click",()=>window.print());$("excelButton").addEventListener("click",exportExcel);$("closeEventButton").addEventListener("click",closeEvent);
 
-$("addMemberButton").addEventListener("click", async () => {
-  try {
-    const ok = await addMember($("newMemberName").value);
-
-    if (ok) {
-      $("newMemberName").value = "";
-    } else {
-      alert("名冊已有同名團員，請先確認。");
-    }
-  } catch (e) {
-    alert("新增失敗：" + e.message);
-  }
-});
-
 
 $("bulkImportButton").addEventListener("click", async () => {
   const names = $("bulkMembers").value
@@ -201,8 +187,18 @@ $("bulkImportButton").addEventListener("click", async () => {
 
   try {
     for (const name of uniqueNames) {
+      button.textContent = `匯入中：${name}`;
+
       try {
-        const result = await addMember(name);
+        const result = await Promise.race([
+          addMember(name),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("等待新增資料逾時，請檢查 Firebase 連線")),
+              15000
+            )
+          )
+        ]);
 
         if (result) {
           added++;
@@ -211,6 +207,7 @@ $("bulkImportButton").addEventListener("click", async () => {
         }
       } catch (e) {
         failed.push(`${name}：${e.message}`);
+        console.error("團員新增失敗：", name, e);
       }
     }
 
@@ -225,8 +222,10 @@ $("bulkImportButton").addEventListener("click", async () => {
     if (added > 0) {
       $("bulkMembers").value = "";
     }
+
   } finally {
     button.disabled = false;
+    button.textContent = "匯入名單";
   }
 });
 
