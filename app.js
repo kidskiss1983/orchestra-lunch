@@ -35,7 +35,23 @@ function renderEventOptions(){
   $("adminEvent").innerHTML=events.length?events.map(e=>`<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}${e.status!=="open"?"（已關閉）":""}</option>`).join(""):'<option value="">尚無場次</option>';
   if(events.some(e=>e.id===old))$("adminEvent").value=old;
 }
-function renderMemberOptions(){const old=$("familyMember").value;$("familyMember").innerHTML='<option value="">請選擇團員</option>'+activeMembers().map(m=>`<option value="${safe(m.id)}">${safe(m.name)}${m.className?"｜"+safe(m.className):""}</option>`).join("");if(activeMembers().some(m=>m.id===old))$("familyMember").value=old;renderFamilyForm();}
+
+
+function renderMemberOptions() {
+  const old = $("familyMember").value;
+
+  $("familyMember").innerHTML =
+    '<option value="">請選擇團員</option>' +
+    activeMembers()
+      .map(m => `<option value="${safe(m.id)}">${safe(m.name)}</option>`)
+      .join("");
+
+  if (activeMembers().some(m => m.id === old)) {
+    $("familyMember").value = old;
+  }
+
+  renderFamilyForm();
+}
 function ownOrder(eventId,memberId){return orders.find(o=>o.eventId===eventId&&o.memberId===memberId&&o.ownerUid===currentUser?.uid);}
 function renderFamilyForm(){
  const e=selectedEvent(), memberId=$("familyMember").value;
@@ -116,7 +132,26 @@ async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
 async function saveEvent(){const name=$("eventName").value.trim(),date=$("eventDate").value,deadlineText=$("eventDeadline").value,restaurant=$("restaurantName").value.trim();if(!name||!date)return alert("請填寫場次名稱與日期。");const items=draftItems.map(i=>({id:i.id||crypto.randomUUID(),name:String(i.name||"").trim(),price:Math.max(0,Number(i.price||0))})).filter(i=>i.name);if(!items.length)return alert("請至少新增一個餐點。");const deadline=deadlineText?new Date(deadlineText):"";const payload={name,date,deadline,restaurant,items,status:"open",updatedAt:serverTimestamp(),updatedBy:currentUser.uid};try{const id=$("editingEventId").value;if(id){await updateDoc(doc(db,"lunchEvents",id),payload);alert("場次已更新。");}else{await addDoc(collection(db,"lunchEvents"),{...payload,createdAt:serverTimestamp(),createdBy:currentUser.uid});alert("場次已建立。");}resetEventForm();}catch(e){alert("儲存失敗："+e.message);}}
 async function loadEventForEdit(){const e=selectedAdminEvent();if(!e)return alert("請先選擇場次。");$("editingEventId").value=e.id;$("eventName").value=e.name||"";$("eventDate").value=e.date||"";$("eventDeadline").value=e.deadline?.toDate?new Date(e.deadline.toDate().getTime()-e.deadline.toDate().getTimezoneOffset()*60000).toISOString().slice(0,16):e.deadline?new Date(e.deadline).toISOString().slice(0,16):"";$("restaurantName").value=e.restaurant||"";draftItems=(e.items||[]).map(i=>({...i}));$("menuText").value=draftItems.map(i=>`${i.name} ${i.price}`).join("\n");renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";window.scrollTo({top:$("adminView").offsetTop,behavior:"smooth"});}
-async function addMember(name,cls=""){name=name.trim();if(!name)return;if(members.some(m=>m.name===name)){return false;}await addDoc(collection(db,"lunchMembers"),{name,className:cls.trim(),active:true,createdAt:serverTimestamp(),createdBy:currentUser.uid});return true;}
+
+async function addMember(name) {
+  name = name.trim();
+
+  if (!name) return false;
+
+  if (members.some(m => m.name === name)) {
+    return false;
+  }
+
+  await addDoc(collection(db, "lunchMembers"), {
+    name,
+    active: true,
+    createdAt: serverTimestamp(),
+    createdBy: currentUser.uid
+  });
+
+  return true;
+}
+
 async function exportExcel(){const e=selectedAdminEvent();if(!e)return alert("請選擇場次。");const XLSX=await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");const rows=orders.filter(o=>o.eventId===e.id);const detail=[["日期",e.date],["場次",e.name],["餐廳",e.restaurant||""],[],["團員姓名","餐點","單價","份數","小計","備註"]];for(const o of rows)for(const i of o.items||[])if(i.qty>0)detail.push([o.memberName,i.name,i.price,i.qty,i.price*i.qty,o.note||""]);const totals={};for(const o of rows)for(const i of o.items||[])if(i.qty>0){if(!totals[i.name])totals[i.name]={price:i.price,qty:0};totals[i.name].qty+=Number(i.qty);}const summary=[["餐點","單價","總份數","小計"],...Object.entries(totals).map(([n,v])=>[n,v.price,v.qty,v.price*v.qty])];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(detail),"訂單明細");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),"餐點統計");XLSX.writeFile(wb,`弦樂團訂餐_${e.date||"日期"}.xlsx`);}
 async function closeEvent(){const e=selectedAdminEvent();if(!e)return;if(!confirm(`確定關閉「${e.name}」的訂餐嗎？家長將無法再提交或更新。`))return;try{await updateDoc(doc(db,"lunchEvents",e.id),{status:"closed",closedAt:serverTimestamp(),closedBy:currentUser.uid});alert("已關閉訂餐。");}catch(err){alert("關閉失敗："+err.message);}}
 function switchView(id){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===id));document.querySelectorAll(".view").forEach(v=>v.classList.toggle("hidden",v.id!==id));}
@@ -126,9 +161,44 @@ $("googleLogin").addEventListener("click",async()=>{try{await signInWithPopup(au
 $("newItemButton").addEventListener("click",()=>{draftItems.push({id:crypto.randomUUID(),name:"",price:0});renderItemEditor();});
 $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("menuText").value);if(!found.length)return alert("未解析到餐點。請使用「餐點名稱 價格」格式，或手動新增。");draftItems=found;renderItemEditor();alert(`解析到 ${found.length} 個餐點，請逐項校正。`);});
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
-$("addMemberButton").addEventListener("click",async()=>{try{const ok=await addMember($("newMemberName").value,$("newMemberClass").value);if(ok){$("newMemberName").value="";$("newMemberClass").value="";}else alert("名冊已有同名團員，請先確認。");}catch(e){alert("新增失敗："+e.message);}});
-$("bulkImportButton").addEventListener("click",async()=>{const lines=$("bulkMembers").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);let added=0;for(const line of lines){const [name,...rest]=line.split(/[,，\t]/);try{if(await addMember(name,rest.join(" ")))added++;}catch(e){alert(`匯入「${name}」失敗：${e.message}`);break;}}alert(`已新增 ${added} 位團員（重複姓名會略過）。`);$("bulkMembers").value="";});
 $("adminEvent").addEventListener("change",renderSummary);$("printButton").addEventListener("click",()=>window.print());$("excelButton").addEventListener("click",exportExcel);$("closeEventButton").addEventListener("click",closeEvent);
+
+$("addMemberButton").addEventListener("click", async () => {
+  try {
+    const ok = await addMember($("newMemberName").value);
+
+    if (ok) {
+      $("newMemberName").value = "";
+    } else {
+      alert("名冊已有同名團員，請先確認。");
+    }
+  } catch (e) {
+    alert("新增失敗：" + e.message);
+  }
+});
+
+$("bulkImportButton").addEventListener("click", async () => {
+  const lines = $("bulkMembers").value
+    .split(/\r?\n/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  let added = 0;
+
+  for (const name of lines) {
+    try {
+      if (await addMember(name)) {
+        added++;
+      }
+    } catch (e) {
+      alert(`匯入「${name}」失敗：${e.message}`);
+      break;
+    }
+  }
+
+  alert(`已新增 ${added} 位團員（重複姓名會略過）。`);
+  $("bulkMembers").value = "";
+});
 
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
