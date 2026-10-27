@@ -62,53 +62,6 @@ async function syncOrderSummaries(orderList) {
     await batch.commit();
   }
 }
-function renderFamilyOrderOverview() {
-  const box = $("familyOrderOverview");
-  if (!box) return;
-
-  const event = selectedEvent();
-
-  if (!event) {
-    box.innerHTML = '<p class="helper">請先選擇訂餐場次。</p>';
-    return;
-  }
-
-  const list = familyOrderSummaries
-    .filter(order => order.eventId === event.id)
-    .sort((a, b) =>
-      (a.memberName || "").localeCompare(b.memberName || "", "zh-Hant")
-    );
-
-  if (list.length === 0) {
-    box.innerHTML = '<p class="helper">目前還沒有團員提交訂單。</p>';
-    return;
-  }
-
-  box.innerHTML = list.map(order => {
-    const items = (order.items || [])
-      .filter(item => Number(item.qty || 0) > 0);
-
-    const itemText = items.length
-      ? items.map(item =>
-          `<div>${safe(item.name)} × ${Number(item.qty)} 份</div>`
-        ).join("")
-      : '<div class="helper">尚未選擇餐點</div>';
-
-    return `
-      <div class="menu-item">
-        <div>
-          <div class="menu-name">${safe(order.memberName || "未命名團員")}</div>
-          <div class="helper">${itemText}</div>
-        </div>
-        <div>
-          <div class="menu-price">
-            NT$${Number(order.totalAmount || 0).toLocaleString("zh-TW")}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
 function subscribeCollection(name, callback, queryRef=collection(db,name)) {
   const unsub=onSnapshot(queryRef, snap=>callback(snap.docs.map(d=>({id:d.id,...d.data()}))), err=>say(`讀取 ${name} 失敗：${err.message}`,"error"));
   unsubscribers.push(unsub);
