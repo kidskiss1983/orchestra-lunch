@@ -216,29 +216,30 @@ function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$(
 }
 function renderItemEditor(){ $("menuEditor").innerHTML=draftItems.map((it,i)=>`<div class="editor-row"><div><label>餐點名稱</label><input data-item-name="${i}" value="${safe(it.name)}" placeholder="餐點名稱"></div><div><label>價格（元）</label><input data-item-price="${i}" type="number" min="0" value="${Number(it.price||0)}"></div><button class="button danger" data-item-remove="${i}">刪除</button></div>`).join("");document.querySelectorAll("[data-item-name]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemName)].name=el.value.trim());document.querySelectorAll("[data-item-price]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemPrice)].price=Math.max(0,Number(el.value||0)));document.querySelectorAll("[data-item-remove]").forEach(el=>el.onclick=()=>{draftItems.splice(Number(el.dataset.itemRemove),1);renderItemEditor();});}
 
+
 function parseMenuText(text) {
   const found = [];
-  const lines = text
+  const seen = new Set();
+
+  const lines = String(text || "")
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(Boolean);
 
-  for ( i = 0; i < lines.length; i++) {
-    const line = lines[i]
+  const priceRegex = /(?:NT\s*\$?|＄|\$)?\s*(\d{1,4})\s*元?\s*$/i;
+  const cleanLine = line =>
+    line
       .replace(/[•●▪■◆◇]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
 
-    // 價格格式：80、80元、NT$80、$80
-    const priceMatch = line.match(
-      /(?:NT\s*\$?|＄|\$)?\s*(\d{1,4})\s*元?\s*$/i
-    );
+  for (let i = 0; i < lines.length; i++) {
+    const line = cleanLine(lines[i]);
+    const priceMatch = line.match(priceRegex);
 
     if (!priceMatch) continue;
 
     const price = Number(priceMatch[1]);
-
-    // 排除明顯不合理的價格
     if (price < 1 || price > 9999) continue;
 
     let name = line
@@ -246,35 +247,30 @@ function parseMenuText(text) {
       .replace(/[\s:：$＄\-–—]+$/g, "")
       .trim();
 
-    // 若這一行只有價格，嘗試使用上一行作為餐名
     if (!name && i > 0) {
-      const previous = lines[i - 1].trim();
+      const previous = cleanLine(lines[i - 1]);
 
-      // 上一行不能本身也是價格
-      if (!/(?:NT\s*\$?|＄|\$)?\s*\d{1,4}\s*元?\s*$/i.test(previous)) {
+      if (!priceRegex.test(previous)) {
         name = previous;
       }
     }
 
-    // 過濾沒有餐名、純數字及過短的文字
     if (!name || /^\d+$/.test(name)) continue;
 
-    // 避免重複匯入完全相同的餐名與價格
-    const duplicate = found.some(
-      item => item.name === name && item.price === price
-    );
+    const key = `${name}\u0000${price}`;
+    if (seen.has(key)) continue;
 
-    if (!duplicate) {
-      found.push({
-        id: crypto.randomUUID(),
-        name,
-        price
-      });
-    }
+    seen.add(key);
+    found.push({
+      id: crypto.randomUUID(),
+      name,
+      price
+    });
   }
 
   return found;
 }
+
 async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").value,m=activeMembers().find(x=>x.id===memberId);if(!e||!m)return alert("請選擇場次與團員。");if(!isOpen(e))return alert("此場次已截止或關閉。");const chosen=[...document.querySelectorAll("[data-qty]")].map(el=>{const it=e.items.find(x=>x.id===el.dataset.qty);return it?{itemId:it.id,name:it.name,price:Number(it.price||0),qty:Number(el.value)}:null}).filter(Boolean);if(!chosen.some(i=>i.qty>0))return alert("請至少選擇一份餐點。");if(!auth.currentUser)await signInAnonymously(auth);const id=`${e.id}_${m.id}`,existing=orders.find(o=>o.id===id);const payload={eventId:e.id,eventName:e.name,eventDate:e.date,memberId:m.id,memberName:m.name,items:chosen,note:$("familyNote").value.trim(),ownerUid:existing?.ownerUid||auth.currentUser.uid,updatedAt:serverTimestamp()};try{if(existing&&existing.ownerUid!==auth.currentUser.uid)throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");if(existing)await updateDoc(doc(db,"lunchOrders",id),payload);else await setDoc(doc(db,"lunchOrders",id),{...payload,createdAt:serverTimestamp()});sayFamily("訂單已儲存！請確認餐點與備註正確。","ok");}catch(e){sayFamily("儲存失敗："+e.message,"error");}}
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
 async function saveEvent(){const name=$("eventName").value.trim(),date=$("eventDate").value,deadlineText=$("eventDeadline").value,restaurant=$("restaurantName").value.trim();if(!name||!date)return alert("請填寫場次名稱與日期。");const items=draftItems.map(i=>({id:i.id||crypto.randomUUID(),name:String(i.name||"").trim(),price:Math.max(0,Number(i.price||0))})).filter(i=>i.name);if(!items.length)return alert("請至少新增一個餐點。");const deadline=deadlineText?new Date(deadlineText):"";const payload={name,date,deadline,restaurant,items,status:"open",updatedAt:serverTimestamp(),updatedBy:currentUser.uid};try{const id=$("editingEventId").value;if(id){await updateDoc(doc(db,"lunchEvents",id),payload);alert("場次已更新。");}else{await addDoc(collection(db,"lunchEvents"),{...payload,createdAt:serverTimestamp(),createdBy:currentUser.uid});alert("場次已建立。");}resetEventForm();}catch(e){alert("儲存失敗："+e.message);}}
