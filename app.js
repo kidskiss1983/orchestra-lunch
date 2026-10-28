@@ -161,28 +161,33 @@ function renderMemberOptions() {
   const isTeacher = member =>
     String(member.name || "").includes("老師");
 
-  const sortedMembers = [...activeMembers()]
-    .map((member, index) => ({ ...member, originalIndex: index }))
-    .sort((a, b) => {
-      const teacherA = isTeacher(a);
-      const teacherB = isTeacher(b);
 
-      // 一般團員永遠排在老師之前
-      if (teacherA !== teacherB) {
-        return teacherA ? 1 : -1;
-      }
+  const sortedMembers = [...activeMembers()].sort((a, b) => {
+    const teacherA =
+      a.role === "teacher" || isTeacher(a);
+    const teacherB =
+      b.role === "teacher" || isTeacher(b);
 
-      // 團員與老師各自依姓氏筆畫排序
-      const strokeA = getSurnameStroke(a.name);
-      const strokeB = getSurnameStroke(b.name);
+    // 學生永遠排在老師之前
+    if (teacherA !== teacherB) {
+      return teacherA ? 1 : -1;
+    }
 
-      if (strokeA !== strokeB) {
-        return strokeA - strokeB;
-      }
+    // 同一類別依管理員儲存的順序排列
+    const orderA = Number(a.sortOrder ?? 999999);
+    const orderB = Number(b.sortOrder ?? 999999);
 
-      // 同筆畫維持原本名單順序
-      return a.originalIndex - b.originalIndex;
-    });
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+
+    // 尚未設定順序或順序相同時，依姓名文字排序
+    return (a.name || "").localeCompare(
+      b.name || "",
+      "zh-Hant-TW-u-co-stroke"
+    );
+  });
+
 
   select.innerHTML =
     '<option value="">請選擇團員</option>' +
