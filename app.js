@@ -760,6 +760,58 @@ async function deleteSelectedEvent() {
     button.disabled = false;
   }
 }
+
+async function clearStudentMembers() {
+  if (!admin || !currentUser || currentUser.isAnonymous) {
+    alert("請先使用已授權的管理者帳號登入。");
+    return;
+  }
+
+  try {
+    const snapshot = await getDocs(collection(db, "lunchMembers"));
+
+    const students = snapshot.docs.filter((memberDoc) => {
+      const member = memberDoc.data();
+      const name = String(member.name || "").trim();
+
+      // 有老師身分或姓名包含「老師」者，一律保留
+      return member.role !== "teacher" && !name.includes("老師");
+    });
+
+    if (students.length === 0) {
+      alert("沒有找到需要清除的學生團員。");
+      return;
+    }
+
+    const names = students
+      .map((memberDoc) => memberDoc.data().name || "未命名")
+      .join("、");
+
+    const confirmed = confirm(
+      `找到 ${students.length} 位可能的學生團員：\n\n` +
+      `${names}\n\n` +
+      "請確認以上名單全部都是學生。\n" +
+      "老師名單、歷史訂單及場次不會刪除。\n\n" +
+      "確定要繼續嗎？"
+    );
+
+    if (!confirmed) return;
+
+    const batch = writeBatch(db);
+
+    students.forEach((memberDoc) => {
+      batch.delete(doc(db, "lunchMembers", memberDoc.id));
+    });
+
+    await batch.commit();
+
+    alert(`已清除 ${students.length} 位學生團員。`);
+  } catch (error) {
+    console.error("清除學生團員失敗：", error);
+    alert("清除失敗：" + error.message);
+  }
+}
+
 async function loadEventForEdit(){const e=selectedAdminEvent();if(!e)return alert("請先選擇場次。");$("editingEventId").value=e.id;$("eventName").value=e.name||"";$("eventDate").value=e.date||"";$("eventDeadline").value=e.deadline?.toDate?new Date(e.deadline.toDate().getTime()-e.deadline.toDate().getTimezoneOffset()*60000).toISOString().slice(0,16):e.deadline?new Date(e.deadline).toISOString().slice(0,16):"";$("restaurantName").value=e.restaurant||"";draftItems=(e.items||[]).map(i=>({...i}));$("menuText").value=draftItems.map(i=>`${i.name} ${i.price}`).join("\n");renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";window.scrollTo({top:$("adminView").offsetTop,behavior:"smooth"});}
 
 
