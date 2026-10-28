@@ -356,6 +356,7 @@ function renderMembersTable() {
     };
   });
 
+ 
   document.querySelectorAll("[data-toggle-role]").forEach(button => {
     button.onclick = async () => {
       const member = members.find(
@@ -372,12 +373,12 @@ function renderMembersTable() {
           role: newRole,
           updatedAt: serverTimestamp()
         });
-      
       } catch (error) {
         alert("身分更新失敗：" + error.message);
       }
-    });
+    };
   });
+
 
   document.querySelectorAll("[data-delete-member]").forEach(button => {
     button.onclick = async () => {
