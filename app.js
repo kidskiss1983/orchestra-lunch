@@ -315,16 +315,22 @@ function renderMembersTable() {
                   data-member-down="${safe(m.id)}"
                   ${index === sortedMembers.length - 1 ? "disabled" : ""}>下移</button>
               </td>
-              <td>
-                <button class="button secondary"
-                  data-toggle-member="${safe(m.id)}">
-                  ${m.active === false ? "重新啟用" : "停用"}
-                </button>
-                <button class="button secondary"
-                  data-toggle-role="${safe(m.id)}">
-                  ${m.role === "teacher" ? "改為團員" : "設為老師"}
-                </button>
-              </td>
+              
+<td>
+  <button class="button secondary"
+    data-toggle-member="${safe(m.id)}">
+    ${m.active === false ? "重新啟用" : "停用"}
+  </button>
+  <button class="button secondary"
+    data-toggle-role="${safe(m.id)}">
+    ${m.role === "teacher" ? "改為團員" : "設為老師"}
+  </button>
+  <button class="button danger"
+    data-delete-member="${safe(m.id)}">
+    強制刪除
+  </button>
+</td>
+
             </tr>
           `).join("")}
         </tbody>
