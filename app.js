@@ -786,7 +786,78 @@ function parseMenuText(text) {
   return found;
 }
 
-async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").value,m=activeMembers().find(x=>x.id===memberId);if(!e||!m)return alert("請選擇場次與團員。");if(!isOpen(e))return alert("此場次已截止或關閉。");const chosen=[...document.querySelectorAll("[data-qty]")].map(el=>{const it=e.items.find(x=>x.id===el.dataset.qty);return it?{itemId:it.id,name:it.name,price:Number(it.price||0),qty:Number(el.value)}:null}).filter(Boolean);if(!chosen.some(i=>i.qty>0))return alert("請至少選擇一份餐點。");if(!auth.currentUser)await signInAnonymously(auth);const id=`${e.id}_${m.id}`,existing=orders.find(o=>o.id===id);const payload={eventId:e.id,eventName:e.name,eventDate:e.date,memberId:m.id,memberName:m.name,items:chosen,note:$("familyNote").value.trim(),ownerUid:existing?.ownerUid||auth.currentUser.uid,updatedAt:serverTimestamp()};try{if(existing&&existing.ownerUid!==auth.currentUser.uid)throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");if(existing)await updateDoc(doc(db,"lunchOrders",id),payload);else await setDoc(doc(db,"lunchOrders",id),{...payload,createdAt:serverTimestamp()});sayFamily("訂單已儲存！請確認餐點與備註正確。","ok");}catch(e){sayFamily("儲存失敗："+e.message,"error");}}
+
+async function submitOrder(){
+  const e = selectedEvent();
+  const memberId = $("familyMember").value;
+  const m = activeMembers().find(x => x.id === memberId);
+
+  if(!e || !m) return alert("請選擇場次與團員。");
+  if(!isOpen(e)) return alert("此場次已截止或關閉。");
+
+  const chosen = [];
+
+  for(const el of document.querySelectorAll("[data-qty]")){
+    const it = e.items.find(x => x.id === el.dataset.qty);
+    if(!it) continue;
+
+    const unit = it.unit === "顆" ? "顆" : "份";
+    const qty = Number(el.value || 0);
+
+    if(!Number.isInteger(qty) || qty < 0){
+      return alert(`${it.name}的${unit}數量必須是非負整數。`);
+    }
+
+    chosen.push({
+      itemId: it.id,
+      name: it.name,
+      price: Number(it.price || 0),
+      qty,
+      unit
+    });
+  }
+
+  if(!chosen.some(i => i.qty > 0)){
+    return alert("請至少選擇一份餐點或輸入水餃顆數。");
+  }
+
+  if(!auth.currentUser) await signInAnonymously(auth);
+
+  const id = `${e.id}_${m.id}`;
+  const existing = orders.find(o => o.id === id);
+
+  const payload = {
+    eventId: e.id,
+    eventName: e.name,
+    eventDate: e.date,
+    memberId: m.id,
+    memberName: m.name,
+    items: chosen,
+    note: $("familyNote").value.trim(),
+    ownerUid: existing?.ownerUid || auth.currentUser.uid,
+    updatedAt: serverTimestamp()
+  };
+
+  try{
+    if(existing && existing.ownerUid !== auth.currentUser.uid){
+      throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");
+    }
+
+    if(existing){
+      await updateDoc(doc(db, "lunchOrders", id), payload);
+    }else{
+      await setDoc(doc(db, "lunchOrders", id), {
+        ...payload,
+        createdAt: serverTimestamp()
+      });
+    }
+
+    sayFamily("訂單已儲存！請確認餐點與備註正確。", "ok");
+  }catch(e){
+    sayFamily("儲存失敗：" + e.message, "error");
+  }
+}
+
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
 
 async function saveEvent(){
