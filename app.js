@@ -120,8 +120,25 @@ function renderEventOptions(){
   if(events.some(e=>e.id===old))$("adminEvent").value=old;
 }
 
+function getSurnameStroke(name) {
+  const surname = String(name || "").trim().charAt(0);
 
+  const strokes = {
+    "一": 1, "乙": 1,
+    "丁": 2, "七": 2, "卜": 2, "人": 2, "刀": 2, "力": 2, "又": 2,
+    "三": 3, "上": 3, "下": 3, "大": 3, "女": 3, "子": 3, "山": 3,
+    "王": 4, "方": 4, "毛": 4, "孔": 4, "文": 4, "尤": 4, "尹": 4,
+    "石": 5, "田": 5, "白": 5, "伍": 6, "朱": 6, "江": 6, "何": 7,
+    "吳": 7, "呂": 7, "李": 7, "宋": 7, "張": 11, "許": 11,
+    "陳": 10, "郭": 15, "黃": 12, "曾": 12, "彭": 12, "游": 12,
+    "楊": 13, "葉": 12, "劉": 15, "蔡": 17, "鄭": 19, "謝": 17,
+    "羅": 20, "蘇": 22, "顏": 18, "簡": 18, "鍾": 17, "賴": 16,
+    "蕭": 19, "趙": 14, "周": 8, "林": 8, "邱": 7, "洪": 10,
+    "徐": 10, "高": 10, "唐": 10, "馬": 10, "孫": 10, "郭": 15
+  };
 
+  return strokes[surname] ?? 999;
+}
 
 function renderMemberOptions() {
   const select = $("familyMember");
@@ -129,32 +146,38 @@ function renderMemberOptions() {
 
   const old = select.value;
 
-  const sortedMembers = [...activeMembers()].sort((a, b) => {
-    // 團員排前面，老師排最後
-    const roleA = a.role === "teacher" ? 1 : 0;
-    const roleB = b.role === "teacher" ? 1 : 0;
+  const isTeacher = member =>
+    String(member.name || "").includes("老師");
 
-    if (roleA !== roleB) return roleA - roleB;
+  const sortedMembers = [...activeMembers()]
+    .map((member, index) => ({ ...member, originalIndex: index }))
+    .sort((a, b) => {
+      const teacherA = isTeacher(a);
+      const teacherB = isTeacher(b);
 
-    // 已手動設定的順序優先
-    const orderA = Number(a.sortOrder ?? 999999);
-    const orderB = Number(b.sortOrder ?? 999999);
+      if (teacherA !== teacherB) {
+        return teacherA ? 1 : -1;
+      }
 
-    if (orderA !== orderB) return orderA - orderB;
+      if (teacherA && teacherB) {
+        return a.originalIndex - b.originalIndex;
+      }
 
-    // 沒有手動排序時，依中文姓氏筆畫排序
-    return (a.name || "").localeCompare(
-      b.name || "",
-      "zh-Hant-TW-u-co-stroke"
-    );
-  });
+      const strokeA = getSurnameStroke(a.name);
+      const strokeB = getSurnameStroke(b.name);
+
+      if (strokeA !== strokeB) {
+        return strokeA - strokeB;
+      }
+
+      // 姓氏筆畫相同時，維持原始名單順序
+      return a.originalIndex - b.originalIndex;
+    });
 
   select.innerHTML =
     '<option value="">請選擇團員</option>' +
     sortedMembers.map(member =>
-      `<option value="${safe(member.id)}">${safe(member.name)}${
-        member.role === "teacher" ? "（老師）" : ""
-      }</option>`
+      `<option value="${safe(member.id)}">${safe(member.name)}</option>`
     ).join("");
 
   if (sortedMembers.some(member => member.id === old)) {
@@ -163,7 +186,6 @@ function renderMemberOptions() {
 
   renderFamilyForm();
 }
-
 function ownOrder(eventId,memberId){return orders.find(o=>o.eventId===eventId&&o.memberId===memberId&&o.ownerUid===currentUser?.uid);}
 $("familyEvent").addEventListener("change", () => {
   renderFamilyForm();
