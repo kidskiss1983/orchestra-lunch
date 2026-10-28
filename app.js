@@ -274,8 +274,13 @@ function renderMembersTable() {
   if (!admin) return;
 
   const sortedMembers = [...members].sort((a, b) => {
-    const roleA = a.role === "teacher" ? 1 : 0;
-    const roleB = b.role === "teacher" ? 1 : 0;
+    const roleA =
+  a.role === "teacher" || String(a.name || "").includes("老師")
+    ? 1 : 0;
+
+const roleB =
+  b.role === "teacher" || String(b.name || "").includes("老師")
+    ? 1 : 0;
 
     if (roleA !== roleB) return roleA - roleB;
 
