@@ -577,6 +577,93 @@ function parseMenuText(text) {
 async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").value,m=activeMembers().find(x=>x.id===memberId);if(!e||!m)return alert("請選擇場次與團員。");if(!isOpen(e))return alert("此場次已截止或關閉。");const chosen=[...document.querySelectorAll("[data-qty]")].map(el=>{const it=e.items.find(x=>x.id===el.dataset.qty);return it?{itemId:it.id,name:it.name,price:Number(it.price||0),qty:Number(el.value)}:null}).filter(Boolean);if(!chosen.some(i=>i.qty>0))return alert("請至少選擇一份餐點。");if(!auth.currentUser)await signInAnonymously(auth);const id=`${e.id}_${m.id}`,existing=orders.find(o=>o.id===id);const payload={eventId:e.id,eventName:e.name,eventDate:e.date,memberId:m.id,memberName:m.name,items:chosen,note:$("familyNote").value.trim(),ownerUid:existing?.ownerUid||auth.currentUser.uid,updatedAt:serverTimestamp()};try{if(existing&&existing.ownerUid!==auth.currentUser.uid)throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");if(existing)await updateDoc(doc(db,"lunchOrders",id),payload);else await setDoc(doc(db,"lunchOrders",id),{...payload,createdAt:serverTimestamp()});sayFamily("訂單已儲存！請確認餐點與備註正確。","ok");}catch(e){sayFamily("儲存失敗："+e.message,"error");}}
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
 async function saveEvent(){const name=$("eventName").value.trim(),date=$("eventDate").value,deadlineText=$("eventDeadline").value,restaurant=$("restaurantName").value.trim();if(!name||!date)return alert("請填寫場次名稱與日期。");const items=draftItems.map(i=>({id:i.id||crypto.randomUUID(),name:String(i.name||"").trim(),price:Math.max(0,Number(i.price||0))})).filter(i=>i.name);if(!items.length)return alert("請至少新增一個餐點。");const deadline=deadlineText?new Date(deadlineText):"";const payload={name,date,deadline,restaurant,items,status:"open",updatedAt:serverTimestamp(),updatedBy:currentUser.uid};try{const id=$("editingEventId").value;if(id){await updateDoc(doc(db,"lunchEvents",id),payload);alert("場次已更新。");}else{await addDoc(collection(db,"lunchEvents"),{...payload,createdAt:serverTimestamp(),createdBy:currentUser.uid});alert("場次已建立。");}resetEventForm();}catch(e){alert("儲存失敗："+e.message);}}
+
+async function deleteSelectedEvent() {
+  if (!admin || !currentUser || currentUser.isAnonymous) {
+    alert("請先使用已授權的管理者帳號登入。");
+    return;
+  }
+
+  const eventId = $("adminEvent").value;
+
+  if (!eventId) {
+    alert("請先選擇要刪除的場次。");
+    return;
+  }
+
+  const event = events.find(item => item.id === eventId);
+
+  if (!event) {
+    alert("找不到這個場次，請重新整理後再試。");
+    return;
+  }
+
+  const confirmed = confirm(
+    `確定要刪除場次嗎？\n\n` +
+    `場次：${event.name}\n` +
+    `日期：${event.date}\n\n` +
+    "如果這個場次已有訂單，系統將禁止刪除。"
+  );
+
+  if (!confirmed) return;
+
+  const button = $("deleteEventButton");
+  button.disabled = true;
+
+  try {
+    // 重新查詢 Firebase，確認場次是否已有訂單
+    const orderQuery = query(
+      collection(db, "lunchOrders"),
+      where("eventId", "==", eventId)
+    );
+
+    const orderSnapshot = await getDocs(orderQuery);
+
+    if (!orderSnapshot.empty) {
+      alert(
+        `此場次已有 ${orderSnapshot.size} 筆訂單，為保護歷史資料，禁止刪除。\n\n` +
+        "如果不再接受訂餐，請使用「關閉訂餐」功能。"
+      );
+      return;
+    }
+
+    // 再確認場次仍存在
+    const eventRef = doc(db, "lunchEvents", eventId);
+    const eventSnapshot = await getDoc(eventRef);
+
+    if (!eventSnapshot.exists()) {
+      alert("此場次已不存在，請重新整理頁面。");
+      return;
+    }
+
+    // 刪除前再次確認最新資料沒有訂單
+    const finalOrderQuery = query(
+      collection(db, "lunchOrders"),
+      where("eventId", "==", eventId)
+    );
+
+    const finalOrderSnapshot = await getDocs(finalOrderQuery);
+
+    if (!finalOrderSnapshot.empty) {
+      alert("檢查期間有新訂單產生，為保護資料，本次取消刪除。");
+      return;
+    }
+
+    await deleteDoc(eventRef);
+
+    // 如果正在編輯這個場次，清空編輯表單
+    if ($("editingEventId").value === eventId) {
+      resetEventForm();
+    }
+
+    alert("場次已刪除。");
+  } catch (error) {
+    alert("刪除失敗：" + error.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 async function loadEventForEdit(){const e=selectedAdminEvent();if(!e)return alert("請先選擇場次。");$("editingEventId").value=e.id;$("eventName").value=e.name||"";$("eventDate").value=e.date||"";$("eventDeadline").value=e.deadline?.toDate?new Date(e.deadline.toDate().getTime()-e.deadline.toDate().getTimezoneOffset()*60000).toISOString().slice(0,16):e.deadline?new Date(e.deadline).toISOString().slice(0,16):"";$("restaurantName").value=e.restaurant||"";draftItems=(e.items||[]).map(i=>({...i}));$("menuText").value=draftItems.map(i=>`${i.name} ${i.price}`).join("\n");renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";window.scrollTo({top:$("adminView").offsetTop,behavior:"smooth"});}
 
 
