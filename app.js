@@ -207,17 +207,80 @@ $("familyEvent").addEventListener("change", () => {
   renderFamilyForm();
   renderFamilyOrderOverview();
 });
+
 function renderFamilyForm(){
- const e=selectedEvent(), memberId=$("familyMember").value;
- renderFamilyOrderOverview();
- $("eventInfo").textContent=e?`${e.restaurant||"餐廳未設定"}｜${e.date||""}｜${isOpen(e)?"開放訂餐":"已截止或關閉"}`:"";
- const box=$("familyMenu");
- if(!e){box.innerHTML='<p class="empty">目前沒有開放訂餐的場次。</p>';$("submitOrder").disabled=true;return;}
- if(!e.items?.length){box.innerHTML='<p class="empty">管理者尚未建立菜單。</p>';$("submitOrder").disabled=true;return;}
- const existing=ownOrder(e.id,memberId);
- box.innerHTML=e.items.map(it=>{const prev=existing?.items?.find(x=>x.itemId===it.id);return `<div class="menu-item"><div><div class="menu-name">${safe(it.name)}</div><div class="menu-price">每份 NT$${Number(it.price||0)}</div></div><div><label class="small-muted" for="qty-${safe(it.id)}">份數</label><select id="qty-${safe(it.id)}" data-qty="${safe(it.id)}" ${!isOpen(e)?"disabled":""}>${Array.from({length:11},(_,n)=>`<option value="${n}" ${Number(prev?.qty||0)===n?"selected":""}>${n} 份</option>`).join("")}</select></div></div>`}).join("");
- $("familyNote").value=existing?.note||"";$("submitOrder").disabled=!isOpen(e);$("submitOrder").textContent=existing?"更新我的訂單":"送出訂單";
+  const e = selectedEvent(), memberId = $("familyMember").value;
+  renderFamilyOrderOverview();
+
+  $("eventInfo").textContent = e
+    ? `${e.restaurant || "餐廳未設定"}｜${e.date || ""}｜${isOpen(e) ? "開放訂餐" : "已截止或關閉"}`
+    : "";
+
+  const box = $("familyMenu");
+
+  if(!e){
+    box.innerHTML = '<p class="empty">目前沒有開放訂餐的場次。</p>';
+    $("submitOrder").disabled = true;
+    return;
+  }
+
+  if(!e.items?.length){
+    box.innerHTML = '<p class="empty">管理者尚未建立菜單。</p>';
+    $("submitOrder").disabled = true;
+    return;
+  }
+
+  const existing = ownOrder(e.id, memberId);
+
+  box.innerHTML = e.items.map(it => {
+    const prev = existing?.items?.find(x => x.itemId === it.id);
+    const unit = it.unit === "顆" ? "顆" : "份";
+    const flavors = Array.isArray(it.flavors) ? it.flavors : [];
+
+    const flavorHtml = unit === "顆" && flavors.length
+      ? `<div>
+          <label class="small-muted" for="flavor-${safe(it.id)}">口味</label>
+          <select id="flavor-${safe(it.id)}" data-flavor="${safe(it.id)}" ${!isOpen(e) ? "disabled" : ""}>
+            <option value="">請選擇口味</option>
+            ${flavors.map(f => `<option value="${safe(f)}" ${prev?.flavor === f ? "selected" : ""}>${safe(f)}</option>`).join("")}
+          </select>
+        </div>`
+      : "";
+
+    const qtyHtml = unit === "顆"
+      ? `<input id="qty-${safe(it.id)}" data-qty="${safe(it.id)}" type="number" min="0" step="1" value="${Number(prev?.qty || 0)}" placeholder="輸入顆數" ${!isOpen(e) ? "disabled" : ""} style="width:100px">`
+      : `<select id="qty-${safe(it.id)}" data-qty="${safe(it.id)}" ${!isOpen(e) ? "disabled" : ""}>
+          ${Array.from({length:11}, (_, n) => `<option value="${n}" ${Number(prev?.qty || 0) === n ? "selected" : ""}>${n} 份</option>`).join("")}
+        </select>`;
+
+    return `<div class="menu-item">
+      <div>
+        <div class="menu-name">${safe(it.name)}</div>
+        <div class="menu-price">每${unit} NT$${Number(it.price || 0)}</div>
+      </div>
+      <div>
+        ${flavorHtml}
+        <label class="small-muted" for="qty-${safe(it.id)}">${unit === "顆" ? "顆數" : "份數"}</label>
+        ${qtyHtml}
+        <div class="menu-price" data-total="${safe(it.id)}">小計 NT$${Number(it.price || 0) * Number(prev?.qty || 0)}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("[data-qty]").forEach(el => {
+    el.addEventListener("input", () => {
+      const it = e.items.find(x => x.id === el.dataset.qty);
+      const qty = Math.max(0, Math.floor(Number(el.value || 0)));
+      const total = box.querySelector(`[data-total="${el.dataset.qty}"]`);
+      if(total) total.textContent = `小計 NT$${Number(it?.price || 0) * qty}`;
+    });
+  });
+
+  $("familyNote").value = existing?.note || "";
+  $("submitOrder").disabled = !isOpen(e);
+  $("submitOrder").textContent = existing ? "更新我的訂單" : "送出訂單";
 }
+
 
 function renderFamilyOrderOverview() {
   const box = document.getElementById("familyOrderOverview");
