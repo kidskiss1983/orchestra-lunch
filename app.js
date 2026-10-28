@@ -121,12 +121,14 @@ function renderEventOptions(){
 }
 
 
+
 function getSurnameStroke(name) {
   const surname = String(name || "").trim().charAt(0);
 
   const strokes = {
     "孔": 4,
     "石": 5,
+    "江": 6,
     "吳": 7,
     "林": 8,
     "卓": 8,
@@ -134,17 +136,21 @@ function getSurnameStroke(name) {
     "徐": 10,
     "凃": 10,
     "張": 11,
+    "薛": 16,
     "黃": 12,
     "詹": 13,
     "歐": 15,
     "劉": 15,
     "陳": 16,
+    "賴": 16,
+    "鄭": 19,
     "顏": 18,
-    "鄭": 19
+    "宜": 8
   };
 
   return strokes[surname] ?? 999;
 }
+
 
 function renderMemberOptions() {
   const select = $("familyMember");
