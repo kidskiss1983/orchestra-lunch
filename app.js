@@ -632,6 +632,7 @@ async function submitOrder(){const e=selectedEvent(),memberId=$("familyMember").
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
 async function saveEvent(){const name=$("eventName").value.trim(),date=$("eventDate").value,deadlineText=$("eventDeadline").value,restaurant=$("restaurantName").value.trim();if(!name||!date)return alert("請填寫場次名稱與日期。");const items=draftItems.map(i=>({id:i.id||crypto.randomUUID(),name:String(i.name||"").trim(),price:Math.max(0,Number(i.price||0))})).filter(i=>i.name);if(!items.length)return alert("請至少新增一個餐點。");const deadline=deadlineText?new Date(deadlineText):"";const payload={name,date,deadline,restaurant,items,status:"open",updatedAt:serverTimestamp(),updatedBy:currentUser.uid};try{const id=$("editingEventId").value;if(id){await updateDoc(doc(db,"lunchEvents",id),payload);alert("場次已更新。");}else{await addDoc(collection(db,"lunchEvents"),{...payload,createdAt:serverTimestamp(),createdBy:currentUser.uid});alert("場次已建立。");}resetEventForm();}catch(e){alert("儲存失敗："+e.message);}}
 
+a
 async function deleteSelectedEvent() {
   if (!admin || !currentUser || currentUser.isAnonymous) {
     alert("請先使用已授權的管理者帳號登入。");
@@ -648,24 +649,23 @@ async function deleteSelectedEvent() {
   const event = events.find(item => item.id === eventId);
 
   if (!event) {
-    alert("找不到這個場次，請重新整理後再試。");
+    alert("找不到這個場次，請重新整理頁面後再試。");
     return;
   }
 
-  const confirmed = confirm(
-    `確定要刪除場次嗎？\n\n` +
-    `場次：${event.name}\n` +
-    `日期：${event.date}\n\n` +
-    "如果這個場次已有訂單，系統將禁止刪除。"
-  );
-
-  if (!confirmed) return;
+  if (!confirm(
+    `確定要刪除這個場次嗎？\n\n` +
+    `場次：${event.name}\n日期：${event.date}\n\n` +
+    "已有訂單的場次將無法刪除。"
+  )) {
+    return;
+  }
 
   const button = $("deleteEventButton");
   button.disabled = true;
 
   try {
-    // 重新查詢 Firebase，確認場次是否已有訂單
+    // 確認這個場次目前沒有任何訂單
     const orderQuery = query(
       collection(db, "lunchOrders"),
       where("eventId", "==", eventId)
@@ -675,8 +675,8 @@ async function deleteSelectedEvent() {
 
     if (!orderSnapshot.empty) {
       alert(
-        `此場次已有 ${orderSnapshot.size} 筆訂單，為保護歷史資料，禁止刪除。\n\n` +
-        "如果不再接受訂餐，請使用「關閉訂餐」功能。"
+        `這個場次已有 ${orderSnapshot.size} 筆訂單，不能刪除。\n\n` +
+        "如不再接受訂餐，請使用「關閉訂餐」功能。"
       );
       return;
     }
@@ -686,26 +686,25 @@ async function deleteSelectedEvent() {
     const eventSnapshot = await getDoc(eventRef);
 
     if (!eventSnapshot.exists()) {
-      alert("此場次已不存在，請重新整理頁面。");
+      alert("這個場次已不存在，請重新整理頁面。");
       return;
     }
 
-    // 刪除前再次確認最新資料沒有訂單
-    const finalOrderQuery = query(
-      collection(db, "lunchOrders"),
-      where("eventId", "==", eventId)
+    // 刪除前再次確認沒有訂單
+    const finalCheck = await getDocs(
+      query(
+        collection(db, "lunchOrders"),
+        where("eventId", "==", eventId)
+      )
     );
 
-    const finalOrderSnapshot = await getDocs(finalOrderQuery);
-
-    if (!finalOrderSnapshot.empty) {
-      alert("檢查期間有新訂單產生，為保護資料，本次取消刪除。");
+    if (!finalCheck.empty) {
+      alert("檢查期間出現新訂單，本次取消刪除。");
       return;
     }
 
     await deleteDoc(eventRef);
 
-    // 如果正在編輯這個場次，清空編輯表單
     if ($("editingEventId").value === eventId) {
       resetEventForm();
     }
@@ -717,7 +716,6 @@ async function deleteSelectedEvent() {
     button.disabled = false;
   }
 }
-
 async function loadEventForEdit(){const e=selectedAdminEvent();if(!e)return alert("請先選擇場次。");$("editingEventId").value=e.id;$("eventName").value=e.name||"";$("eventDate").value=e.date||"";$("eventDeadline").value=e.deadline?.toDate?new Date(e.deadline.toDate().getTime()-e.deadline.toDate().getTimezoneOffset()*60000).toISOString().slice(0,16):e.deadline?new Date(e.deadline).toISOString().slice(0,16):"";$("restaurantName").value=e.restaurant||"";draftItems=(e.items||[]).map(i=>({...i}));$("menuText").value=draftItems.map(i=>`${i.name} ${i.price}`).join("\n");renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";window.scrollTo({top:$("adminView").offsetTop,behavior:"smooth"});}
 
 
