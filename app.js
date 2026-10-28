@@ -237,16 +237,6 @@ function renderFamilyForm(){
     const unit = it.unit === "顆" ? "顆" : "份";
     const flavors = Array.isArray(it.flavors) ? it.flavors : [];
 
-    const flavorHtml = unit === "顆" && flavors.length
-      ? `<div>
-          <label class="small-muted" for="flavor-${safe(it.id)}">口味</label>
-          <select id="flavor-${safe(it.id)}" data-flavor="${safe(it.id)}" ${!isOpen(e) ? "disabled" : ""}>
-            <option value="">請選擇口味</option>
-            ${flavors.map(f => `<option value="${safe(f)}" ${prev?.flavor === f ? "selected" : ""}>${safe(f)}</option>`).join("")}
-          </select>
-        </div>`
-      : "";
-
     const qtyHtml = unit === "顆"
       ? `<input id="qty-${safe(it.id)}" data-qty="${safe(it.id)}" type="number" min="0" step="1" value="${Number(prev?.qty || 0)}" placeholder="輸入顆數" ${!isOpen(e) ? "disabled" : ""} style="width:100px">`
       : `<select id="qty-${safe(it.id)}" data-qty="${safe(it.id)}" ${!isOpen(e) ? "disabled" : ""}>
@@ -259,7 +249,6 @@ function renderFamilyForm(){
         <div class="menu-price">每${unit} NT$${Number(it.price || 0)}</div>
       </div>
       <div>
-        ${flavorHtml}
         <label class="small-muted" for="qty-${safe(it.id)}">${unit === "顆" ? "顆數" : "份數"}</label>
         ${qtyHtml}
         <div class="menu-price" data-total="${safe(it.id)}">小計 NT$${Number(it.price || 0) * Number(prev?.qty || 0)}</div>
