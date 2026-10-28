@@ -372,11 +372,13 @@ function renderMembersTable() {
           role: newRole,
           updatedAt: serverTimestamp()
         });
+      
       } catch (error) {
         alert("身分更新失敗：" + error.message);
       }
-    };
- 
+    });
+  });
+
   document.querySelectorAll("[data-delete-member]").forEach(button => {
     button.onclick = async () => {
       if (!admin || !currentUser || currentUser.isAnonymous) {
