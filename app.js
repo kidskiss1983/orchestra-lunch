@@ -863,7 +863,10 @@ $("deleteEventButton").addEventListener(
   "click",
   deleteSelectedEvent
 );
-
+$("clearStudentMembersButton").addEventListener(
+  "click",
+  clearStudentMembers
+);
 
 $("bulkImportButton").addEventListener("click", async () => {
   const names = $("bulkMembers").value
