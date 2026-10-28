@@ -35,6 +35,24 @@
     <div class="actions"><button id="googleLogin" class="button primary">使用 Google 登入</button><button id="googleLogout" class="button secondary hidden">登出</button></div>
     <div id="uidNotice" class="notice hidden"></div>
     <div id="adminTools" class="hidden">
+      
+<div class="subpanel">
+  <h3>清除測試訂單</h3>
+  <p class="helper">
+    請勾選要刪除的測試訂單。刪除後無法直接復原，請先確認訂單內容。
+  </p>
+  <div class="actions">
+    <button id="loadDeleteOrdersButton" class="button secondary">
+      載入訂單清單
+    </button>
+    <button id="deleteSelectedOrdersButton" class="button primary" disabled>
+      刪除勾選的訂單
+    </button>
+  </div>
+  <div id="deleteOrdersList">
+    <p class="helper">請按「載入訂單清單」。</p>
+  </div>
+</div>
       <div class="subpanel"><h3>一、建立或編輯加練場次</h3>
         <input id="editingEventId" type="hidden">
         <div class="form-grid"><div><label for="eventName">場次名稱</label><input id="eventName" placeholder="例如：週六弦樂團加練"></div><div><label for="eventDate">日期</label><input id="eventDate" type="date"></div><div><label for="eventDeadline">訂餐截止時間</label><input id="eventDeadline" type="datetime-local"></div><div><label for="restaurantName">餐廳名稱</label><input id="restaurantName" placeholder="餐廳名稱"></div></div>
