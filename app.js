@@ -830,7 +830,14 @@ async function addMember(name) {
 
   if (!name) return false;
 
-  if (members.some(m => m.name === name)) {
+    const normalizedName = name.replace(/\s+/g, "");
+
+  if (
+    members.some(
+      m => String(m.name || "").replace(/\s+/g, "") === normalizedName
+    )
+  ) {
+    alert(`「${name}」已經存在，請勿重複新增。`);
     return false;
   }
 
