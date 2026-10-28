@@ -317,6 +317,70 @@ function renderMembersTable() {
       }
     };
   });
+  
+  async function moveMember(memberId, direction) {
+    if (!admin) return;
+
+    // 依目前畫面排序，老師與團員分開調整
+    const sorted = [...members].sort((a, b) => {
+      const roleA = a.role === "teacher" ? 1 : 0;
+      const roleB = b.role === "teacher" ? 1 : 0;
+
+      if (roleA !== roleB) return roleA - roleB;
+
+      const orderA = Number(a.sortOrder ?? 999999);
+      const orderB = Number(b.sortOrder ?? 999999);
+
+      if (orderA !== orderB) return orderA - orderB;
+
+      return (a.name || "").localeCompare(
+        b.name || "",
+        "zh-Hant-TW-u-co-stroke"
+      );
+    });
+
+    const member = sorted.find(m => m.id === memberId);
+    if (!member) return;
+
+    const role = member.role === "teacher" ? "teacher" : "member";
+
+    const sameRole = sorted.filter(
+      m => (m.role === "teacher" ? "teacher" : "member") === role
+    );
+
+    const index = sameRole.findIndex(m => m.id === memberId);
+    const targetIndex = index + direction;
+
+    if (targetIndex < 0 || targetIndex >= sameRole.length) return;
+
+    [sameRole[index], sameRole[targetIndex]] =
+      [sameRole[targetIndex], sameRole[index]];
+
+    try {
+      const batch = writeBatch(db);
+
+      sameRole.forEach((m, i) => {
+        batch.update(doc(db, "lunchMembers", m.id), {
+          sortOrder: i + 1,
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+    } catch (error) {
+      alert("儲存排序失敗：" + error.message);
+    }
+  }
+
+  document.querySelectorAll("[data-member-up]").forEach(button => {
+    button.onclick = () =>
+      moveMember(button.dataset.memberUp, -1);
+  });
+
+  document.querySelectorAll("[data-member-down]").forEach(button => {
+    button.onclick = () =>
+      moveMember(button.dataset.memberDown, 1);
+  });
 }
 function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$("summary").innerHTML='<p class="helper">請先建立場次。</p>';return;}const rows=orders.filter(o=>o.eventId===e.id);const totals={};for(const o of rows)for(const i of o.items||[])if(Number(i.qty)>0){if(!totals[i.name])totals[i.name]={price:Number(i.price||0),qty:0};totals[i.name].qty+=Number(i.qty)}const qty=Object.values(totals).reduce((s,x)=>s+x.qty,0),amount=Object.values(totals).reduce((s,x)=>s+x.qty*x.price,0);const submitted=new Set(rows.filter(o=>(o.items||[]).some(i=>Number(i.qty)>0)).map(o=>o.memberId));const missing=activeMembers().filter(m=>!submitted.has(m.id));
  $("summary").innerHTML=`<div class="stats"><div class="stat"><span>已提交訂單</span><strong>${rows.length}</strong></div><div class="stat"><span>餐點總份數</span><strong>${qty}</strong></div><div class="stat"><span>預估總金額</span><strong>NT$${amount}</strong></div></div><h4>依餐點統計</h4><div class="table-wrap"><table id="summaryItems"><thead><tr><th>餐點</th><th>單價</th><th>份數</th><th>小計</th></tr></thead><tbody>${Object.entries(totals).map(([n,v])=>`<tr><td>${safe(n)}</td><td>$${v.price}</td><td>${v.qty}</td><td>$${v.qty*v.price}</td></tr>`).join("")||'<tr><td colspan="4">尚無訂單</td></tr>'}</tbody></table></div><h4>團員訂單明細</h4><div class="table-wrap"><table id="summaryOrders"><thead><tr><th>團員</th><th>餐點</th><th>份數</th><th>備註</th><th>金額</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${safe(o.memberName)}</td><td>${safe((o.items||[]).filter(i=>i.qty>0).map(i=>i.name).join("、")||"未選餐")}</td><td>${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0),0)}</td><td>${safe(o.note||"")}</td><td>$${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0)*Number(i.price||0),0)}</td></tr>`).join("")||'<tr><td colspan="5">尚無訂單</td></tr>'}</tbody></table></div><h4>尚未訂餐／未提交</h4><p>${missing.length?missing.map(m=>safe(m.name)).join("、"):"全員皆已提交（仍請核對是否有人自備午餐）"}</p>`;
