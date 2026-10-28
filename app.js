@@ -145,6 +145,7 @@ function getSurnameStroke(name) {
 
   return strokes[surname] ?? 999;
 }
+
 function renderMemberOptions() {
   const select = $("familyMember");
   if (!select) return;
@@ -160,14 +161,12 @@ function renderMemberOptions() {
       const teacherA = isTeacher(a);
       const teacherB = isTeacher(b);
 
+      // 一般團員永遠排在老師之前
       if (teacherA !== teacherB) {
         return teacherA ? 1 : -1;
       }
 
-      if (teacherA && teacherB) {
-        return a.originalIndex - b.originalIndex;
-      }
-
+      // 團員與老師各自依姓氏筆畫排序
       const strokeA = getSurnameStroke(a.name);
       const strokeB = getSurnameStroke(b.name);
 
@@ -175,7 +174,7 @@ function renderMemberOptions() {
         return strokeA - strokeB;
       }
 
-      // 姓氏筆畫相同時，維持原始名單順序
+      // 同筆畫維持原本名單順序
       return a.originalIndex - b.originalIndex;
     });
 
@@ -191,6 +190,7 @@ function renderMemberOptions() {
 
   renderFamilyForm();
 }
+
 function ownOrder(eventId,memberId){return orders.find(o=>o.eventId===eventId&&o.memberId===memberId&&o.ownerUid===currentUser?.uid);}
 $("familyEvent").addEventListener("change", () => {
   renderFamilyForm();
