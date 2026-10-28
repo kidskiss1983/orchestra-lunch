@@ -210,7 +210,114 @@ function renderFamilyOrderOverview() {
     <p class="helper">共 ${summaries.length} 筆訂單</p>
   `;
 }
-function renderMembersTable(){if(!admin)return;$("membersTable").innerHTML=`<p class="helper">啟用團員 ${activeMembers().length} 位。停用只會隱藏於家長選單，不會刪除歷史訂單。</p><div class="table-wrap"><table><thead><tr><th>姓名</th><th>班別</th><th>狀態</th><th>操作</th></tr></thead><tbody>${members.map(m=>`<tr><td>${safe(m.name)}</td><td>${safe(m.className||"")}</td><td>${m.active===false?"已停用":"啟用"}</td><td><button class="button secondary" data-toggle-member="${safe(m.id)}">${m.active===false?"重新啟用":"停用"}</button></td></tr>`).join("")}</tbody></table></div>`;document.querySelectorAll("[data-toggle-member]").forEach(b=>b.onclick=async()=>{const m=members.find(x=>x.id===b.dataset.toggleMember);if(!m)return;try{await updateDoc(doc(db,"lunchMembers",m.id),{active:m.active===false,updatedAt:serverTimestamp()});}catch(e){alert("更新失敗："+e.message);}});}
+
+function renderMembersTable() {
+  if (!admin) return;
+
+  const sortedMembers = [...members].sort((a, b) => {
+    const roleA = a.role === "teacher" ? 1 : 0;
+    const roleB = b.role === "teacher" ? 1 : 0;
+
+    if (roleA !== roleB) return roleA - roleB;
+
+    const orderA = Number(a.sortOrder ?? 999999);
+    const orderB = Number(b.sortOrder ?? 999999);
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    return (a.name || "").localeCompare(
+      b.name || "",
+      "zh-Hant-TW-u-co-stroke"
+    );
+  });
+
+  $("membersTable").innerHTML = `
+    <p class="helper">
+      啟用團員 ${activeMembers().length} 位。
+      老師會排在團員之後；可使用上下按鈕調整順序。
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>身分</th>
+            <th>狀態</th>
+            <th>排序</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sortedMembers.map((m, index) => `
+            <tr>
+              <td>${safe(m.name)}</td>
+              <td>${m.role === "teacher" ? "老師" : "團員"}</td>
+              <td>${m.active === false ? "已停用" : "啟用"}</td>
+              <td>
+                <button class="button secondary"
+                  data-member-up="${safe(m.id)}"
+                  ${index === 0 ? "disabled" : ""}>上移</button>
+                <button class="button secondary"
+                  data-member-down="${safe(m.id)}"
+                  ${index === sortedMembers.length - 1 ? "disabled" : ""}>下移</button>
+              </td>
+              <td>
+                <button class="button secondary"
+                  data-toggle-member="${safe(m.id)}">
+                  ${m.active === false ? "重新啟用" : "停用"}
+                </button>
+                <button class="button secondary"
+                  data-toggle-role="${safe(m.id)}">
+                  ${m.role === "teacher" ? "改為團員" : "設為老師"}
+                </button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.querySelectorAll("[data-toggle-member]").forEach(button => {
+    button.onclick = async () => {
+      const member = members.find(
+        item => item.id === button.dataset.toggleMember
+      );
+      if (!member) return;
+
+      try {
+        await updateDoc(doc(db, "lunchMembers", member.id), {
+          active: member.active === false,
+          updatedAt: serverTimestamp()
+        });
+      } catch (error) {
+        alert("更新失敗：" + error.message);
+      }
+    };
+  });
+
+  document.querySelectorAll("[data-toggle-role]").forEach(button => {
+    button.onclick = async () => {
+      const member = members.find(
+        item => item.id === button.dataset.toggleRole
+      );
+      if (!member) return;
+
+      const newRole = member.role === "teacher"
+        ? "member"
+        : "teacher";
+
+      try {
+        await updateDoc(doc(db, "lunchMembers", member.id), {
+          role: newRole,
+          updatedAt: serverTimestamp()
+        });
+      } catch (error) {
+        alert("身分更新失敗：" + error.message);
+      }
+    };
+  });
+}
 function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$("summary").innerHTML='<p class="helper">請先建立場次。</p>';return;}const rows=orders.filter(o=>o.eventId===e.id);const totals={};for(const o of rows)for(const i of o.items||[])if(Number(i.qty)>0){if(!totals[i.name])totals[i.name]={price:Number(i.price||0),qty:0};totals[i.name].qty+=Number(i.qty)}const qty=Object.values(totals).reduce((s,x)=>s+x.qty,0),amount=Object.values(totals).reduce((s,x)=>s+x.qty*x.price,0);const submitted=new Set(rows.filter(o=>(o.items||[]).some(i=>Number(i.qty)>0)).map(o=>o.memberId));const missing=activeMembers().filter(m=>!submitted.has(m.id));
  $("summary").innerHTML=`<div class="stats"><div class="stat"><span>已提交訂單</span><strong>${rows.length}</strong></div><div class="stat"><span>餐點總份數</span><strong>${qty}</strong></div><div class="stat"><span>預估總金額</span><strong>NT$${amount}</strong></div></div><h4>依餐點統計</h4><div class="table-wrap"><table id="summaryItems"><thead><tr><th>餐點</th><th>單價</th><th>份數</th><th>小計</th></tr></thead><tbody>${Object.entries(totals).map(([n,v])=>`<tr><td>${safe(n)}</td><td>$${v.price}</td><td>${v.qty}</td><td>$${v.qty*v.price}</td></tr>`).join("")||'<tr><td colspan="4">尚無訂單</td></tr>'}</tbody></table></div><h4>團員訂單明細</h4><div class="table-wrap"><table id="summaryOrders"><thead><tr><th>團員</th><th>餐點</th><th>份數</th><th>備註</th><th>金額</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${safe(o.memberName)}</td><td>${safe((o.items||[]).filter(i=>i.qty>0).map(i=>i.name).join("、")||"未選餐")}</td><td>${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0),0)}</td><td>${safe(o.note||"")}</td><td>$${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0)*Number(i.price||0),0)}</td></tr>`).join("")||'<tr><td colspan="5">尚無訂單</td></tr>'}</tbody></table></div><h4>尚未訂餐／未提交</h4><p>${missing.length?missing.map(m=>safe(m.name)).join("、"):"全員皆已提交（仍請核對是否有人自備午餐）"}</p>`;
 }
