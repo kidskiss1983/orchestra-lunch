@@ -701,13 +701,6 @@ function renderItemEditor(){
         <input data-item-price="${i}" type="number" min="0" value="${Number(it.price || 0)}">
       </div>
 
-      <div>
-        <label>口味（選填，以逗號分隔）</label>
-        <input data-item-flavors="${i}"
-          value="${safe((it.flavors || []).join("、"))}"
-          placeholder="例如：高麗菜、韭菜">
-      </div>
-
       <button class="button danger" data-item-remove="${i}">刪除</button>
     </div>
   `).join("");
@@ -727,15 +720,6 @@ function renderItemEditor(){
   document.querySelectorAll("[data-item-price]").forEach(el =>
     el.onchange = () => {
       draftItems[Number(el.dataset.itemPrice)].price = Math.max(0, Number(el.value || 0));
-    }
-  );
-
-  document.querySelectorAll("[data-item-flavors]").forEach(el =>
-    el.onchange = () => {
-      draftItems[Number(el.dataset.itemFlavors)].flavors = el.value
-        .split(/[、，,]/)
-        .map(s => s.trim())
-        .filter(Boolean);
     }
   );
 
