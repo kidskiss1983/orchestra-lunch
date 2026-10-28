@@ -145,7 +145,7 @@ function getSurnameStroke(name) {
     "賴": 16,
     "鄭": 19,
     "顏": 18,
-    "宜": 8
+    "宜": 6
   };
 
   return strokes[surname] ?? 999;
