@@ -376,8 +376,44 @@ function renderMembersTable() {
         alert("身分更新失敗：" + error.message);
       }
     };
+ 
+  document.querySelectorAll("[data-delete-member]").forEach(button => {
+    button.onclick = async () => {
+      if (!admin || !currentUser || currentUser.isAnonymous) {
+        alert("請先使用已授權的管理者帳號登入。");
+        return;
+      }
+
+      const memberId = button.dataset.deleteMember;
+      const member = members.find(item => item.id === memberId);
+
+      if (!member) {
+        alert("找不到這位團員，請重新整理頁面後再試。");
+        return;
+      }
+
+      const confirmed = confirm(
+        `確定要強制刪除「${member.name}」嗎？\n\n` +
+        "此操作會永久刪除團員資料，即使已有歷史訂單也會繼續刪除。\n" +
+        "歷史訂單資料會保留，但可能無法再透過團員名單查回姓名。\n\n" +
+        "此操作無法直接復原。"
+      );
+
+      if (!confirmed) return;
+
+      button.disabled = true;
+
+      try {
+        await deleteDoc(doc(db, "lunchMembers", memberId));
+        alert(`已刪除團員「${member.name}」的資料。歷史訂單未刪除。`);
+      } catch (error) {
+        alert("刪除團員失敗：" + error.message);
+      } finally {
+        button.disabled = false;
+      }
+    };
   });
-  
+
   async function moveMember(memberId, direction) {
     if (!admin) return;
 
