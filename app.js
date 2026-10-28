@@ -711,6 +711,11 @@ $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
 $("adminEvent").addEventListener("change",renderSummary);$("printButton").addEventListener("click",()=>window.print());$("excelButton").addEventListener("click",exportExcel);$("closeEventButton").addEventListener("click",closeEvent);
 
+$("deleteEventButton").addEventListener(
+  "click",
+  deleteSelectedEvent
+);
+
 
 $("bulkImportButton").addEventListener("click", async () => {
   const names = $("bulkMembers").value
