@@ -122,27 +122,48 @@ function renderEventOptions(){
 
 
 
+
 function renderMemberOptions() {
-  const old = $("familyMember").value;
+  const select = $("familyMember");
+  if (!select) return;
 
-  const sortedMembers = [...activeMembers()].sort((a, b) =>
-    a.name.localeCompare(b.name, "zh-Hant-TW", {
-      usage: "sort"
-    })
-  );
+  const old = select.value;
 
-  $("familyMember").innerHTML =
+  const sortedMembers = [...activeMembers()].sort((a, b) => {
+    // 團員排前面，老師排最後
+    const roleA = a.role === "teacher" ? 1 : 0;
+    const roleB = b.role === "teacher" ? 1 : 0;
+
+    if (roleA !== roleB) return roleA - roleB;
+
+    // 已手動設定的順序優先
+    const orderA = Number(a.sortOrder ?? 999999);
+    const orderB = Number(b.sortOrder ?? 999999);
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    // 沒有手動排序時，依中文姓氏筆畫排序
+    return (a.name || "").localeCompare(
+      b.name || "",
+      "zh-Hant-TW-u-co-stroke"
+    );
+  });
+
+  select.innerHTML =
     '<option value="">請選擇團員</option>' +
-    sortedMembers
-      .map(m => `<option value="${safe(m.id)}">${safe(m.name)}</option>`)
-      .join("");
+    sortedMembers.map(member =>
+      `<option value="${safe(member.id)}">${safe(member.name)}${
+        member.role === "teacher" ? "（老師）" : ""
+      }</option>`
+    ).join("");
 
-  if (sortedMembers.some(m => m.id === old)) {
-    $("familyMember").value = old;
+  if (sortedMembers.some(member => member.id === old)) {
+    select.value = old;
   }
 
   renderFamilyForm();
 }
+
 function ownOrder(eventId,memberId){return orders.find(o=>o.eventId===eventId&&o.memberId===memberId&&o.ownerUid===currentUser?.uid);}
 $("familyEvent").addEventListener("change", () => {
   renderFamilyForm();
