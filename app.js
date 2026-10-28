@@ -214,6 +214,138 @@ function renderMembersTable(){if(!admin)return;$("membersTable").innerHTML=`<p c
 function renderSummary(){if(!admin)return;const e=selectedAdminEvent();if(!e){$("summary").innerHTML='<p class="helper">請先建立場次。</p>';return;}const rows=orders.filter(o=>o.eventId===e.id);const totals={};for(const o of rows)for(const i of o.items||[])if(Number(i.qty)>0){if(!totals[i.name])totals[i.name]={price:Number(i.price||0),qty:0};totals[i.name].qty+=Number(i.qty)}const qty=Object.values(totals).reduce((s,x)=>s+x.qty,0),amount=Object.values(totals).reduce((s,x)=>s+x.qty*x.price,0);const submitted=new Set(rows.filter(o=>(o.items||[]).some(i=>Number(i.qty)>0)).map(o=>o.memberId));const missing=activeMembers().filter(m=>!submitted.has(m.id));
  $("summary").innerHTML=`<div class="stats"><div class="stat"><span>已提交訂單</span><strong>${rows.length}</strong></div><div class="stat"><span>餐點總份數</span><strong>${qty}</strong></div><div class="stat"><span>預估總金額</span><strong>NT$${amount}</strong></div></div><h4>依餐點統計</h4><div class="table-wrap"><table id="summaryItems"><thead><tr><th>餐點</th><th>單價</th><th>份數</th><th>小計</th></tr></thead><tbody>${Object.entries(totals).map(([n,v])=>`<tr><td>${safe(n)}</td><td>$${v.price}</td><td>${v.qty}</td><td>$${v.qty*v.price}</td></tr>`).join("")||'<tr><td colspan="4">尚無訂單</td></tr>'}</tbody></table></div><h4>團員訂單明細</h4><div class="table-wrap"><table id="summaryOrders"><thead><tr><th>團員</th><th>餐點</th><th>份數</th><th>備註</th><th>金額</th></tr></thead><tbody>${rows.map(o=>`<tr><td>${safe(o.memberName)}</td><td>${safe((o.items||[]).filter(i=>i.qty>0).map(i=>i.name).join("、")||"未選餐")}</td><td>${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0),0)}</td><td>${safe(o.note||"")}</td><td>$${(o.items||[]).reduce((s,i)=>s+Number(i.qty||0)*Number(i.price||0),0)}</td></tr>`).join("")||'<tr><td colspan="5">尚無訂單</td></tr>'}</tbody></table></div><h4>尚未訂餐／未提交</h4><p>${missing.length?missing.map(m=>safe(m.name)).join("、"):"全員皆已提交（仍請核對是否有人自備午餐）"}</p>`;
 }
+
+function renderDeleteOrdersList() {
+  const box = $("deleteOrdersList");
+  const button = $("deleteSelectedOrdersButton");
+  if (!box || !button) return;
+
+  if (!admin) {
+    box.innerHTML = '<p class="helper">請先以管理者帳號登入。</p>';
+    button.disabled = true;
+    return;
+  }
+
+  if (!orders.length) {
+    box.innerHTML = '<p class="helper">目前沒有訂單。</p>';
+    button.disabled = true;
+    return;
+  }
+
+  const sorted = [...orders].sort((a, b) =>
+    `${a.eventDate || ""}${a.memberName || ""}`.localeCompare(
+      `${b.eventDate || ""}${b.memberName || ""}`,
+      "zh-Hant"
+    )
+  );
+
+  box.innerHTML = sorted.map(order => {
+    const items = (order.items || [])
+      .filter(item => Number(item.qty || 0) > 0);
+
+    const itemText = items.length
+      ? items.map(item =>
+          `${safe(item.name)} × ${Number(item.qty)} 份`
+        ).join("、")
+      : "未選擇餐點";
+
+    const total = items.reduce(
+      (sum, item) =>
+        sum + Number(item.price || 0) * Number(item.qty || 0),
+      0
+    );
+
+    return `
+      <label class="menu-item" style="display:flex;gap:12px;align-items:flex-start">
+        <input type="checkbox" class="delete-order-checkbox"
+          value="${safe(order.id)}">
+        <span>
+          <strong>${safe(order.eventName || "未命名場次")}</strong>
+          <br>
+          <span class="small-muted">
+            ${safe(order.eventDate || "")}｜${safe(order.memberName || "未提供姓名")}
+          </span>
+          <br>
+          <span class="small-muted">${itemText}</span>
+          <br>
+          <strong>NT$${total.toLocaleString("zh-TW")}</strong>
+        </span>
+      </label>
+    `;
+  }).join("");
+
+  button.disabled = true;
+
+  box.querySelectorAll(".delete-order-checkbox").forEach(checkbox => {
+    checkbox.addEventListener("change", () => {
+      button.disabled =
+        !admin ||
+        box.querySelectorAll(".delete-order-checkbox:checked").length === 0;
+    });
+  });
+}
+
+async function deleteSelectedOrders() {
+  if (!admin || !auth.currentUser || auth.currentUser.isAnonymous) {
+    alert("只有已授權的管理者可以刪除訂單。");
+    return;
+  }
+
+  const box = $("deleteOrdersList");
+  const selected = [
+    ...box.querySelectorAll(".delete-order-checkbox:checked")
+  ].map(input => input.value);
+
+  if (!selected.length) {
+    alert("請先勾選要刪除的測試訂單。");
+    return;
+  }
+
+  const confirmed = confirm(
+    `確定要刪除選取的 ${selected.length} 筆訂單及其摘要嗎？\n\n` +
+    "此操作無法直接復原，請確認選取的都是測試資料。"
+  );
+
+  if (!confirmed) return;
+
+  const button = $("deleteSelectedOrdersButton");
+  button.disabled = true;
+
+  try {
+    // 只從目前已載入的訂單中取得管理者勾選的 ID
+    const selectedOrders = orders.filter(order =>
+      selected.includes(order.id)
+    );
+
+    if (selectedOrders.length !== selected.length) {
+      throw new Error("訂單清單已變更，請重新載入後再試。");
+    }
+
+    // Firestore 單次 batch 最多 500 個寫入操作。
+    // 每筆訂單最多刪除訂單文件與摘要文件，共 2 個操作。
+    for (let i = 0; i < selectedOrders.length; i += 200) {
+      const chunk = selectedOrders.slice(i, i + 200);
+      const batch = writeBatch(db);
+
+      for (const order of chunk) {
+        batch.delete(doc(db, "lunchOrders", order.id));
+        batch.delete(doc(db, "lunchOrderSummaries", order.id));
+      }
+
+      await batch.commit();
+    }
+
+    alert(`已刪除 ${selectedOrders.length} 筆訂單及其摘要。`);
+    $("deleteOrdersList").innerHTML =
+      '<p class="helper">刪除完成，請重新載入訂單清單確認。</p>';
+
+    renderSummary();
+  } catch (error) {
+    alert("刪除失敗：" + error.message);
+  } finally {
+    button.disabled = false;
+  }
+}
 function renderItemEditor(){ $("menuEditor").innerHTML=draftItems.map((it,i)=>`<div class="editor-row"><div><label>餐點名稱</label><input data-item-name="${i}" value="${safe(it.name)}" placeholder="餐點名稱"></div><div><label>價格（元）</label><input data-item-price="${i}" type="number" min="0" value="${Number(it.price||0)}"></div><button class="button danger" data-item-remove="${i}">刪除</button></div>`).join("");document.querySelectorAll("[data-item-name]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemName)].name=el.value.trim());document.querySelectorAll("[data-item-price]").forEach(el=>el.onchange=()=>draftItems[Number(el.dataset.itemPrice)].price=Math.max(0,Number(el.value||0)));document.querySelectorAll("[data-item-remove]").forEach(el=>el.onclick=()=>{draftItems.splice(Number(el.dataset.itemRemove),1);renderItemEditor();});}
 
 
@@ -302,6 +434,20 @@ function switchView(id){document.querySelectorAll(".tab").forEach(b=>b.classList
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
 $("familyEvent").addEventListener("change",renderFamilyForm);$("familyMember").addEventListener("change",renderFamilyForm);$("submitOrder").addEventListener("click",submitOrder);
 $("googleLogin").addEventListener("click",async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){alert("Google 登入失敗："+e.message);}});$("googleLogout").addEventListener("click",()=>signOut(auth));
+
+$("loadDeleteOrdersButton").addEventListener("click", () => {
+  if (!admin) {
+    alert("請先登入管理者帳號。");
+    return;
+  }
+
+  renderDeleteOrdersList();
+});
+
+$("deleteSelectedOrdersButton").addEventListener(
+  "click",
+  deleteSelectedOrders
+);
 $("newItemButton").addEventListener("click",()=>{draftItems.push({id:crypto.randomUUID(),name:"",price:0});renderItemEditor();});
 $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("menuText").value);if(!found.length)return alert("未解析到餐點。請使用「餐點名稱 價格」格式，或手動新增。");draftItems=found;renderItemEditor();alert(`解析到 ${found.length} 個餐點，請逐項校正。`);});
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
