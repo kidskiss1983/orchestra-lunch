@@ -231,14 +231,7 @@ function renderFamilyForm(){
   }
 
   const existing = ownOrder(e.id, memberId);
-  console.log("訂單儲存診斷", {
-  uid: auth.currentUser?.uid,
-  eventId: e.id,
-  eventStatus: e.status,
-  memberId: m.id,
-  orderId: id,
-  existingOrder: !!existing
-});
+ 
   box.innerHTML = e.items.map(it => {
     const prev = existing?.items?.find(x => x.itemId === it.id);
     const unit = it.unit === "顆" ? "顆" : "份";
