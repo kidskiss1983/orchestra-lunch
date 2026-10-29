@@ -323,7 +323,7 @@ function renderFamilyOrderOverview() {
         const total = Number(order.totalAmount || 0);
 
        
-        return `
+                return `
           <div class="menu-item family-overview-item">
             <div>
               <div class="menu-name">${safe(order.memberName || "未提供姓名")}</div>
@@ -333,6 +333,10 @@ function renderFamilyOrderOverview() {
             <div class="menu-price">NT$${total.toLocaleString("zh-TW")}</div>
           </div>
         `;
+      }).join("")}
+    </div>
+    <p class="helper">共 ${summaries.length} 筆訂單</p>
+  `;
 }
 
 function renderMembersTable() {
