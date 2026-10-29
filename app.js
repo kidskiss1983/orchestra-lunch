@@ -58,17 +58,17 @@ async function syncOrderSummaries(orderList) {
       0
     );
 
-    batch.set(doc(db, "lunchOrderSummaries", order.id), {
-      eventId: String(order.eventId || ""),
-      eventName: String(order.eventName || ""),
-      eventDate: String(order.eventDate || ""),
-      memberName: String(order.memberName || ""),
-      items,
-      totalAmount,
-      note: String(order.note || ""),
-      updatedAt: serverTimestamp()
-    });
-  });
+   batch.set(doc(db, "lunchOrderSummaries", order.id), {
+  eventId: String(order.eventId || ""),
+  eventName: String(order.eventName || ""),
+  eventDate: String(order.eventDate || ""),
+  memberName: String(order.memberName || ""),
+  items,
+  totalAmount,
+  note: String(order.note || ""),
+  updatedAt: serverTimestamp()
+});
+});
 
   if (snapshot.size > 0 || orderList.length > 0) {
     await batch.commit();
