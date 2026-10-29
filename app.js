@@ -749,7 +749,8 @@ function parseMenuText(text) {
     .map(line => line.trim())
     .filter(Boolean);
 
-  const priceRegex = /(?:NT\s*\$?|＄|\$)?\s*(\d{1,4})\s*元?\s*$/i;
+  
+const priceRegex = /(?:NT\s*\$?|＄|\$)?\s*((?:\d{1,3}(?:,\d{3})+|\d{1,4})(?:\.\d+)?)\s*元?\s*$/i;
   const cleanLine = line =>
     line
       .replace(/[•●▪■◆◇]/g, " ")
