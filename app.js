@@ -125,6 +125,12 @@ function startListeners(){
 }
 
 function renderEventOptions(){
+  console.table(events.map(e => ({
+  name: e.name,
+  status: e.status,
+  deadline: e.deadline,
+  open: isOpen(e)
+})));
   const open=events.filter(isOpen), prev=$("familyEvent").value;
   $("familyEvent").innerHTML=open.length?open.map(e=>`<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}｜${safe(e.restaurant||"餐廳未填")}</option>`).join(""):'<option value="">目前沒有開放訂餐的場次</option>';
   if(open.some(e=>e.id===prev))$("familyEvent").value=prev;
