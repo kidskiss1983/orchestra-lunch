@@ -12,7 +12,18 @@ let familyOrderSummaries = [];
 const safe = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const say = (message, type="") => { const el=$("globalMessage"); el.textContent=message; el.className="notice"+(type?" "+type:""); };
 const sayFamily = (message, type="") => { const el=$("familyMessage"); el.textContent=message; el.className="notice"+(type?" "+type:""); };
-const isOpen = e => e && e.status === "open" && (!e.deadline || typeof e.deadline === "string" && !e.deadline || (e.deadline?.toDate ? e.deadline.toDate().getTime() : new Date(e.deadline).getTime()) > Date.now());
+
+const isOpen = e => {
+  if (!e || e.status !== "open") return false;
+  if (!e.deadline) return true;
+
+  const deadline = e.deadline?.toDate
+    ? e.deadline.toDate().getTime()
+    : new Date(e.deadline).getTime();
+
+  return Number.isFinite(deadline) && deadline > Date.now();
+};
+
 const selectedEvent = () => events.find(e=>e.id===$("familyEvent").value);
 const selectedAdminEvent = () => events.find(e=>e.id===$("adminEvent").value);
 const activeMembers = () => members.filter(m=>m.active !== false);
