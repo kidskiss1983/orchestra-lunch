@@ -1,50 +1,88 @@
 :root{--bg:#f4f1e9;--paper:#fffefa;--ink:#26332b;--muted:#6f786f;--green:#334b3d;--gold:#b28b5e;--line:#e4e0d6;--red:#a44d43;--soft:#e9e5da}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.55}.site-header{max-width:960px;margin:auto;padding:28px 20px 18px;display:flex;align-items:center;gap:15px}.brand-mark{width:54px;height:54px;border-radius:17px;background:var(--green);color:#fff;display:grid;place-items:center;font-size:31px}.eyebrow{font-size:11px;letter-spacing:.16em;font-weight:800;color:var(--gold);margin:0 0 3px}.site-header h1{font-size:clamp(23px,4vw,33px);margin:0;font-weight:800;letter-spacing:.02em}.subtitle{margin:3px 0 0;color:var(--muted);font-size:14px}main{max-width:960px;margin:auto;padding:0 20px 40px}.notice{padding:12px 14px;border-radius:12px;background:#eee7d8;margin:10px 0;font-size:14px;overflow-wrap:anywhere}.notice.ok{background:#e2eee5;color:#294d35}.notice.error{background:#f7e5e1;color:#843a32}.hidden{display:none!important}.tabs{display:flex;gap:8px;margin:16px 0}.tab{border:1px solid var(--line);border-radius:999px;padding:10px 18px;background:#fff;color:var(--ink);cursor:pointer;font:inherit}.tab.active{background:var(--green);color:white;border-color:var(--green)}.view{background:var(--paper);border:1px solid #ebe7dc;border-radius:22px;padding:clamp(17px,4vw,30px);box-shadow:0 10px 35px #2436290a}.section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.section-heading h2{margin:0;font-size:24px}.tag{background:#eee7d8;border-radius:999px;padding:6px 11px;font-size:12px;white-space:nowrap}.helper{font-size:14px;color:var(--muted)}label{display:block;font-weight:700;font-size:14px;margin:15px 0 6px}input,select,textarea{display:block;width:100%;padding:11px 12px;border:1px solid #dcd8ce;border-radius:10px;background:white;color:var(--ink);font:inherit;min-height:44px}textarea{resize:vertical}.button{border:0;border-radius:11px;padding:11px 15px;font:inherit;font-weight:700;cursor:pointer}.button:disabled{opacity:.5;cursor:not-allowed}.primary{background:var(--green);color:white}.secondary{background:var(--soft);color:var(--ink)}.ghost{background:transparent;border:1px solid var(--line)}.danger{background:#f6e4e0;color:var(--red)}.wide{width:100%;margin-top:15px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.actions .button{flex:0 0 auto}.menu-list{border:1px solid var(--line);border-radius:14px;padding:6px 14px;margin:16px 0}.menu-item{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.menu-item:last-child{border-bottom:0}.menu-name{font-weight:750}.menu-price{color:var(--muted);font-size:13px}.menu-item select{min-height:40px}.fineprint{font-size:12px;color:var(--muted);margin-top:14px}.subpanel{border:1px solid var(--line);border-radius:15px;padding:16px;margin-top:18px}.subpanel h3{margin:0 0 12px;font-size:18px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}.menu-editor{margin-top:15px}.editor-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(90px,1fr) auto;gap:8px;align-items:end;border-top:1px solid var(--line);padding:10px 0}.editor-row label{margin-top:4px}.editor-row input{min-width:0}.table-wrap{overflow:auto;margin:10px 0}table{border-collapse:collapse;width:100%;font-size:14px;background:white}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#f0ede5;white-space:nowrap}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:15px 0}.stat{padding:14px;border:1px solid var(--line);border-radius:13px;background:white}.stat span{font-size:12px;color:var(--muted)}.stat strong{display:block;font-size:24px;overflow-wrap:anywhere}.empty{color:var(--muted);padding:12px}.small-muted{font-size:12px;color:var(--muted)}footer{display:flex;justify-content:space-between;gap:12px;padding:18px 4px;color:var(--muted);font-size:12px}@media(max-width:600px){.site-header{padding-top:20px}.brand-mark{width:46px;height:46px}.form-grid{grid-template-columns:1fr}.editor-row{grid-template-columns:minmax(0,1fr) 90px auto}.view{border-radius:17px}.stats{grid-template-columns:1fr 1fr}.stat:last-child{grid-column:1/-1}.actions .button{flex:1}footer{flex-direction:column}}@media print{body{background:#fff;color:#111;font-size:11pt}.site-header,.tabs,#familyView,.admincontrols,.print-hide,footer,.fineprint,.subpanel:not(:last-child){display:none!important}main{max-width:none;padding:0}.view{border:0;box-shadow:none;padding:0}.subpanel{border:0;padding:0}.section-heading{margin-bottom:12px}.section-heading h2{font-size:18pt}table{font-size:9pt}th,td{padding:5px;border:1px solid #bbb}.stats{display:none}#summary h4{margin-bottom:4px}#summary .table-wrap{overflow:visible}#summary table{page-break-inside:auto}tr{page-break-inside:avoid}}
+
 @media print {
-  /* 隱藏整個網頁的操作介面 */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  /* 隱藏其他網頁內容 */
   body * {
     visibility: hidden !important;
   }
 
-  /* 只顯示訂單統計報表 */
+  /* 只顯示訂單報表 */
   #summary,
   #summary * {
     visibility: visible !important;
   }
 
-  /* 將訂單報表移到列印頁面左上方 */
   #summary {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
-    margin: 0 !important;
+    max-width: 180mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
     padding: 0 !important;
     background: white !important;
     color: black !important;
+    font-size: 9pt !important;
+    line-height: 1.35 !important;
+    zoom: 0.9;
   }
 
-  /* 避免表格文字及邊框在列印時消失 */
+  #summary .stats {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #summary .stat {
+    flex: 1 1 25% !important;
+    min-width: 0 !important;
+    padding: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #summary h4 {
+    font-size: 11pt !important;
+    margin: 12px 0 6px !important;
+    break-after: avoid !important;
+  }
+
+  #summary .table-wrap {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
   #summary table {
     width: 100% !important;
+    table-layout: fixed !important;
     border-collapse: collapse !important;
+    font-size: 8pt !important;
   }
 
   #summary th,
   #summary td {
     color: black !important;
-    border: 1px solid #999 !important;
-    padding: 6px !important;
+    border: 1px solid #aaa !important;
+    padding: 4px 5px !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
   }
 
-  #summary h4 {
-    color: black !important;
-    margin-top: 16px !important;
-  }
-
-  /* 避免訂單表格列被拆到兩頁 */
   #summary tr {
-    break-inside: avoid;
+    break-inside: avoid !important;
   }
+
+  #summary p {
+    font-size: 9pt !important;
+    overflow-wrap: anywhere !important;
+  }
+}
 
   @page {
     size: A4 portrait;
