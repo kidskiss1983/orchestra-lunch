@@ -65,6 +65,7 @@ async function syncOrderSummaries(orderList) {
       memberName: String(order.memberName || ""),
       items,
       totalAmount,
+      note: String(order.note || ""),
       updatedAt: serverTimestamp()
     });
   });
