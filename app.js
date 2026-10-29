@@ -321,19 +321,17 @@ function renderFamilyOrderOverview() {
 
         const total = Number(order.totalAmount || 0);
 
+       
         return `
           <div class="menu-item family-overview-item">
             <div>
               <div class="menu-name">${safe(order.memberName || "未提供姓名")}</div>
               <div class="small-muted">${itemText}</div>
+              <div class="small-muted">備註：${safe(order.note || "無")}</div>
             </div>
             <div class="menu-price">NT$${total.toLocaleString("zh-TW")}</div>
           </div>
         `;
-      }).join("")}
-    </div>
-    <p class="helper">共 ${summaries.length} 筆訂單</p>
-  `;
 }
 
 function renderMembersTable() {
