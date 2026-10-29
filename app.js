@@ -788,6 +788,7 @@ function parseMenuText(text) {
 
 
 async function submitOrder(){
+  console.log("測試：submitOrder 已執行");
   const e = selectedEvent();
   const memberId = $("familyMember").value;
   const m = activeMembers().find(x => x.id === memberId);
