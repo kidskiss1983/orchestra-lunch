@@ -300,10 +300,10 @@ function renderFamilyOrderOverview() {
           .filter(item => Number(item.qty || 0) > 0);
 
         const itemText = items.length
-          ? items.map(item =>
-              `${safe(item.name)} × ${Number(item.qty)} 份`
-            ).join("、")
-          : "尚未選擇餐點";
+  ?            items.map(item =>
+                  `${safe(item.name)} × ${Number(item.qty)} ${item.unit === "顆" ? "顆" : "份"}`
+                     ).join("、")
+  : "尚未選擇餐點";
 
         const total = Number(order.totalAmount || 0);
 
@@ -579,8 +579,8 @@ function renderDeleteOrdersList() {
     const itemText = items.length
       ? items.map(item =>
           `${safe(item.name)} × ${Number(item.qty)} 份`
-        ).join("、")
-      : "未選擇餐點";
+           ).join("、")
+          : "未選擇餐點";
 
     const total = items.reduce(
       (sum, item) =>
