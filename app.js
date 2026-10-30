@@ -105,14 +105,10 @@ function startListeners(){
       });
     });
   } else if(currentUser) {
-    subscribeCollection(
-      "lunchOrders",
-      data=>{
-        orders=data;
-        renderFamilyForm();
-      },
-      query(collection(db,"lunchOrders"),where("ownerUid","==",currentUser.uid))
-    );
+    subscribeCollection("lunchOrders", data => {
+  orders = data;
+  renderFamilyForm();
+});
   }
 
   if(currentUser) {
@@ -217,8 +213,7 @@ function renderMemberOptions() {
 function ownOrder(eventId, memberId) {
   return orders.find(o =>
     o.eventId === eventId &&
-    o.memberId === memberId &&
-    o.ownerUid === auth.currentUser?.uid
+    o.memberId === memberId
   );
 }
 
