@@ -985,7 +985,10 @@ const payload = {
 }
 
 function resetEventForm(){["editingEventId","eventName","eventDate","eventDeadline","restaurantName","menuText"].forEach(id=>$(id).value="");$("eventDate").value=new Date().toLocaleDateString("en-CA");draftItems=[];renderItemEditor();$("saveEventButton").textContent="儲存場次與菜單";}
-
+$("familyMember").addEventListener("change", () => {
+  console.log("團員選單變更：", $("familyMember").value);
+  renderFamilyForm();
+});
 async function saveEvent(){
   const name = $("eventName").value.trim();
   const date = $("eventDate").value;
