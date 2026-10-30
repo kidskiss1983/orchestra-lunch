@@ -1212,7 +1212,7 @@ function switchView(id){
   document.querySelectorAll(".view").forEach(v=>{
     v.classList.toggle("hidden", v.id !== id);
   });
-}
+
 document.querySelectorAll(".tab").forEach(b=>{
   b.addEventListener("click",async()=>{
     const id = b.dataset.view;
