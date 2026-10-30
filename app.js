@@ -99,6 +99,9 @@ function startListeners(){
   if(admin) {
     subscribeCollection("lunchOrders", data=>{
       orders=data;
+        console.log("目前讀取到的訂單數量：", orders.length);
+  console.log("目前讀取到的訂單資料：", orders);
+
       renderSummary();
       syncOrderSummaries(data).catch(err=>{
         say("同步團員訂單總覽失敗："+err.message,"error");
