@@ -369,17 +369,17 @@ function renderFamilyOrderOverview() {
 
     <h3>尚未訂餐（${notOrdered.length} 位）</h3>
 
-    ${
-      notOrdered.length
-        ? `<div class="family-overview-list">
-           notOrdered.map(member => `
-  <span class="not-ordered-name">
-    ${safe(member.name)}（尚未訂餐）
-  </span>
-`).join("、")}
-          </div>`
-        : '<p class="helper">太好了！所有團員都已完成訂餐。</p>'
-    }
+    
+${notOrdered.length
+    ? `<div class="family-overview-list">
+        ${notOrdered.map(member => `
+          <span class="not-ordered-name">
+            ${safe(member.name)}（尚未訂餐）
+          </span>
+        `).join("、")}
+      </div>`
+    : '<p class="helper">太好了！所有團員都已完成訂餐。</p>'
+}
   `;
 }
 
