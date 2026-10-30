@@ -306,9 +306,27 @@ function renderFamilyOrderOverview() {
     );
 
   // 取得啟用中的團員名單
-  const activeList = activeMembers().sort((a, b) =>
-    (a.name || "").localeCompare(b.name || "", "zh-Hant")
+  const activeList = activeMembers().sort((a, b) => {
+  const roleA =
+    a.role === "teacher" || String(a.name || "").includes("老師")
+      ? 1 : 0;
+
+  const roleB =
+    b.role === "teacher" || String(b.name || "").includes("老師")
+      ? 1 : 0;
+
+  if (roleA !== roleB) return roleA - roleB;
+
+  const orderA = Number(a.sortOrder ?? 999999);
+  const orderB = Number(b.sortOrder ?? 999999);
+
+  if (orderA !== orderB) return orderA - orderB;
+
+  return (a.name || "").localeCompare(
+    b.name || "",
+    "zh-Hant-TW-u-co-stroke"
   );
+});
 
   // 已訂餐的姓名
   const orderedNames = new Set(
