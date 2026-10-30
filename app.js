@@ -938,9 +938,11 @@ console.log("訂單 ID：", `${e.id}_${m.id}`);
   const id = `${e.id}_${m.id}`;
   const existing = orders.find(o => o.id === id);
 
- console.log("目前登入 UID：", auth.currentUser?.uid);
-console.log("訂單建立者 UID：", existing ? existing.ownerUid : "找不到既有訂單");
-console.log("目前訂單 ID：", id);
+alert(
+  "目前登入 UID：" + (auth.currentUser?.uid || "無") +
+  "\n訂單建立者 UID：" + (existing?.ownerUid || "找不到訂單") +
+  "\n訂單 ID：" + id
+);
 
   try{
     if(existing && existing.ownerUid !== auth.currentUser.uid){
