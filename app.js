@@ -1316,14 +1316,50 @@ $("bulkImportButton").addEventListener("click", async () => {
 
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
-  // 管理權限必須是 config 白名單中的 Google UID；匿名登入只用於家長訂單識別。
-  admin=!!user&&!user.isAnonymous&&ADMIN_UIDS.includes(user.uid)&&!ADMIN_UIDS.some(x=>x.startsWith("請替換"));
-  $("adminTab").classList.toggle("hidden", !admin);
-  $("googleLogin").classList.toggle("hidden",!!user&&!user.isAnonymous);$("googleLogout").classList.toggle("hidden",!user||user.isAnonymous);
-  $("adminTools").classList.toggle("hidden",!admin);$("adminBadge").textContent=admin?"管理者已授權":user&&!user.isAnonymous?"尚未授權":"尚未登入";
-  if(user&&!user.isAnonymous&&!admin){$("uidNotice").classList.remove("hidden");$("uidNotice").textContent=`目前 Google 帳號 UID：${user.uid}。請將此 UID 加入 firebase-config.js 與 firestore.rules 的管理者清單，再重新部署。`;}
-  else $("uidNotice").classList.add("hidden");
-  if(!user){try{await signInAnonymously(auth);}catch(e){say("匿名登入失敗。請確認 Firebase Authentication 已啟用 Anonymous，並已設定授權網域。錯誤："+e.message,"error");}}
-  if(user){startListeners();say(admin?"已連線，管理者權限已啟用。":"已連線。家長可使用共用連結填單。","ok");}
+
+  admin=!!user &&
+    !user.isAnonymous &&
+    ADMIN_UIDS.includes(user.uid) &&
+    !ADMIN_UIDS.some(x=>x.startsWith("請替換"));
+
+  $("adminTab").classList.remove("hidden");
+  $("adminTools").classList.toggle("hidden",!admin);
+
+  $("adminBadge").textContent = admin
+    ? "管理者已授權"
+    : user && !user.isAnonymous
+      ? "尚未授權"
+      : "尚未登入";
+
+  if(user && !user.isAnonymous && !admin){
+    $("uidNotice").classList.remove("hidden");
+    $("uidNotice").textContent =
+      `目前 Google 帳號 UID：${user.uid}。此帳號尚未取得管理者權限。`;
+  }else{
+    $("uidNotice").classList.add("hidden");
+  }
+
+  if(!user){
+    try{
+      await signInAnonymously(auth);
+    }catch(e){
+      say("匿名登入失敗："+e.message,"error");
+    }
+  }
+
+  if(user){
+    startListeners();
+    say(
+      admin
+        ? "已連線，管理者權限已啟用。"
+        : "已連線。家長可使用共用連結填單。",
+      "ok"
+    );
+
+    if(!admin && document.querySelector(".tab.active")?.dataset.view === "adminView"){
+      switchView("familyView");
+    }
+  }
 });
+
 $("eventDate").value=new Date().toLocaleDateString("en-CA");
