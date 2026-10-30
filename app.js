@@ -245,6 +245,12 @@ function renderFamilyForm(){
   }
 
   const existing = ownOrder(e.id, memberId);
+  console.log("目前場次 ID：", e.id);
+console.log("目前團員 ID：", memberId);
+console.log("目前 orders 筆數：", orders.length);
+console.log("符合場次及團員的訂單：",
+  orders.filter(o => o.eventId === e.id && o.memberId === memberId)
+);
  
   box.innerHTML = e.items.map(it => {
     const prev = existing?.items?.find(x => x.itemId === it.id);
