@@ -959,10 +959,7 @@ const payload = {
   };
 
   try{
-    if(existing && existing.ownerUid !== auth.currentUser.uid){
-      throw new Error("此團員訂單已由另一個瀏覽器建立。請聯絡管理者協助修改，避免重複訂餐。");
-    }
-
+    
     if(existing){
       await updateDoc(doc(db, "lunchOrders", id), payload);
     }else{
