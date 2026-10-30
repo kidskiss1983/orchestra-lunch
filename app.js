@@ -214,11 +214,13 @@ function renderMemberOptions() {
   renderFamilyForm();
 }
 
-function ownOrder(eventId,memberId){return orders.find(o=>o.eventId===eventId&&o.memberId===memberId&&o.ownerUid===currentUser?.uid);}
-$("familyEvent").addEventListener("change", () => {
-  renderFamilyForm();
-  renderFamilyOrderOverview();
-});
+function ownOrder(eventId, memberId) {
+  return orders.find(o =>
+    o.eventId === eventId &&
+    o.memberId === memberId &&
+    o.ownerUid === auth.currentUser?.uid
+  );
+}
 
 function renderFamilyForm(){
   const e = selectedEvent(), memberId = $("familyMember").value;
