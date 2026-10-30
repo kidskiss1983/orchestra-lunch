@@ -281,6 +281,9 @@ function renderFamilyForm(){
 
   $("familyNote").value = existing?.note || "";
   $("submitOrder").disabled = !isOpen(e);
+  console.log("場次是否開放：", isOpen(e));
+  console.log("目前選取團員：", memberId);
+  console.log("目前找到的訂單：", existing);
   $("submitOrder").textContent = existing ? "更新我的訂單" : "送出訂單";
 }
 
