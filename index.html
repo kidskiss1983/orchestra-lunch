@@ -10,7 +10,12 @@
 <header class="site-header"><div class="brand-mark">♪</div><div><p class="eyebrow">PQES String Orchestra</p><h1>弦樂團假日加練訂餐</h1><p class="subtitle">家長共用連結・手機填單・自動統計</p></div></header>
 <main>
   <div id="globalMessage" class="notice" role="status">正在初始化，請稍候……</div>
-  <nav class="tabs" aria-label="功能切換"><button class="tab active" data-view="familyView">家長訂餐</button><button class="tab" data-view="adminView">管理者專區</button></nav>
+  <nav class="tabs" aria-label="功能切換">
+  <button class="tab active" data-view="familyView">家長訂餐</button>
+  <button class="tab hidden" data-view="adminView" id="adminTab">
+    管理者專區
+  </button>
+</nav>
   <section id="familyView" class="view">
     <div class="section-heading"><div><p class="eyebrow">ORDER LUNCH</p><h2>填寫午餐訂單</h2></div><span class="tag">家長免註冊</span></div>
     <p class="helper">選擇加練場次與團員，再填寫餐點數量。送出後，同一個瀏覽器可在截止前更新。</p>
