@@ -1196,21 +1196,14 @@ async function addMember(name) {
 async function exportExcel(){const e=selectedAdminEvent();if(!e)return alert("請選擇場次。");const XLSX=await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");const rows=orders.filter(o=>o.eventId===e.id);const detail=[["日期",e.date],["場次",e.name],["餐廳",e.restaurant||""],[],["團員姓名","餐點","單價","份數","小計","備註"]];for(const o of rows)for(const i of o.items||[])if(i.qty>0)detail.push([o.memberName,i.name,i.price,i.qty,i.price*i.qty,o.note||""]);const totals={};for(const o of rows)for(const i of o.items||[])if(i.qty>0){if(!totals[i.name])totals[i.name]={price:i.price,qty:0};totals[i.name].qty+=Number(i.qty);}const summary=[["餐點","單價","總份數","小計"],...Object.entries(totals).map(([n,v])=>[n,v.price,v.qty,v.price*v.qty])];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(detail),"訂單明細");XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),"餐點統計");XLSX.writeFile(wb,`弦樂團訂餐_${e.date||"日期"}.xlsx`);}
 async function closeEvent(){const e=selectedAdminEvent();if(!e)return;if(!confirm(`確定關閉「${e.name}」的訂餐嗎？家長將無法再提交或更新。`))return;try{await updateDoc(doc(db,"lunchEvents",e.id),{status:"closed",closedAt:serverTimestamp(),closedBy:currentUser.uid});alert("已關閉訂餐。");}catch(err){alert("關閉失敗："+err.message);}}
 function switchView(id){
-  if(id === "adminView" && !admin){
-    document.querySelectorAll(".tab").forEach(b=>{
-      b.classList.toggle("active", b.dataset.view === "adminView");
-    });
+  document.querySelectorAll(".tab").forEach(b=>
+    b.classList.toggle("active",b.dataset.view===id)
+  );
 
-    document.querySelectorAll(".view").forEach(v=>{
-      v.classList.toggle("hidden", v.id !== "adminView");
-    });
-
-    $("adminTools").classList.add("hidden");
-    $("googleLogin").classList.remove("hidden");
-
-    $("adminBadge").textContent = "請使用管理者帳號登入";
-    return;
-  }
+  document.querySelectorAll(".view").forEach(v=>
+    v.classList.toggle("hidden",v.id!==id)
+  );
+}
 
   document.querySelectorAll(".tab").forEach(b=>{
     b.classList.toggle("active", b.dataset.view === id);
@@ -1220,7 +1213,33 @@ function switchView(id){
     v.classList.toggle("hidden", v.id !== id);
   });
 }
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
+document.querySelectorAll(".tab").forEach(b=>{
+  b.addEventListener("click",async()=>{
+    const id = b.dataset.view;
+
+    if(id === "adminView" && !admin){
+      try{
+        const result = await signInWithPopup(
+          auth,
+          new GoogleAuthProvider()
+        );
+
+        if(ADMIN_UIDS.includes(result.user.uid)){
+          switchView("adminView");
+        }else{
+          alert("此 Google 帳號尚未取得管理者權限。");
+          await signInAnonymously(auth);
+          switchView("familyView");
+        }
+      }catch(e){
+        alert("Google 登入失敗：" + e.message);
+      }
+      return;
+    }
+
+    switchView(id);
+  });
+});
 
 $("familyEvent").addEventListener("change", renderFamilyForm);
 $("familyMember").addEventListener("change", renderFamilyForm);
