@@ -873,6 +873,24 @@ const priceRegex = /(?:NT\s*\$?|＄|\$)?\s*((?:\d{1,3}(?:,\d{3})+|\d{1,4})(?:\.\
   return found;
 }
 
+function updateSubmitOrderButton() {
+  const button = $("submitOrder");
+  if (!button) return;
+
+  const event = selectedEvent();
+  const memberId = $("familyMember").value;
+
+  if (!event || !memberId) {
+    button.textContent = "送出訂單";
+    return;
+  }
+
+  const id = `${event.id}_${memberId}`;
+  const existing = orders.find(order => order.id === id);
+
+  button.textContent = existing ? "更新訂單" : "送出訂單";
+}
+
 
 async function submitOrder(){
   console.log("測試：submitOrder 已執行");
@@ -1177,7 +1195,19 @@ async function exportExcel(){const e=selectedAdminEvent();if(!e)return alert("�
 async function closeEvent(){const e=selectedAdminEvent();if(!e)return;if(!confirm(`確定關閉「${e.name}」的訂餐嗎？家長將無法再提交或更新。`))return;try{await updateDoc(doc(db,"lunchEvents",e.id),{status:"closed",closedAt:serverTimestamp(),closedBy:currentUser.uid});alert("已關閉訂餐。");}catch(err){alert("關閉失敗："+err.message);}}
 function switchView(id){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===id));document.querySelectorAll(".view").forEach(v=>v.classList.toggle("hidden",v.id!==id));}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
-$("familyEvent").addEventListener("change",renderFamilyForm);$("familyMember").addEventListener("change",renderFamilyForm);$("submitOrder").addEventListener("click",submitOrder);
+
+$("familyEvent").addEventListener("change", () => {
+  renderFamilyForm();
+  updateSubmitOrderButton();
+});
+
+$("familyMember").addEventListener("change", () => {
+  renderFamilyForm();
+  updateSubmitOrderButton();
+});
+
+$("submitOrder").addEventListener("click", submitOrder);
+
 $("googleLogin").addEventListener("click",async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){alert("Google 登入失敗："+e.message);}});$("googleLogout").addEventListener("click",()=>signOut(auth));
 
 $("loadDeleteOrdersButton").addEventListener("click", () => {
