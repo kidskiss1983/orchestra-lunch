@@ -243,6 +243,18 @@ function renderFamilyForm(){
   }
 
   const existing = ownOrder(e.id, memberId);
+  console.log("=== 訂單比對診斷 ===");
+console.log("目前場次：", e.id);
+console.log("目前團員：", memberId);
+
+console.table(orders.map(o => ({
+  訂單ID: o.id,
+  場次ID: o.eventId,
+  團員ID: o.memberId,
+  團員姓名: o.memberName
+})));
+
+console.log("找到的原訂單：", existing);
   console.log("目前場次 ID：", e.id);
 console.log("目前團員 ID：", memberId);
 console.log("目前 orders 筆數：", orders.length);
