@@ -931,18 +931,23 @@ async function submitOrder(){
 
   if(!auth.currentUser) await signInAnonymously(auth);
 console.log("目前登入 UID：", auth.currentUser?.uid);
-console.log("訂單建立者 UID：", existing?.ownerUid);
 console.log("目前團員 ID：", m.id);
 console.log("目前場次 ID：", e.id);
 console.log("訂單 ID：", `${e.id}_${m.id}`);
   const id = `${e.id}_${m.id}`;
   const existing = orders.find(o => o.id === id);
 
-alert(
-  "目前登入 UID：" + (auth.currentUser?.uid || "無") +
-  "\n訂單建立者 UID：" + (existing?.ownerUid || "找不到訂單") +
-  "\n訂單 ID：" + id
-);
+const payload = {
+    eventId: e.id,
+    eventName: e.name,
+    eventDate: e.date,
+    memberId: m.id,
+    memberName: m.name,
+    items: chosen,
+    note: $("familyNote").value.trim(),
+    ownerUid: existing?.ownerUid || auth.currentUser.uid,
+    updatedAt: serverTimestamp()
+  };
 
   try{
     if(existing && existing.ownerUid !== auth.currentUser.uid){
@@ -1292,7 +1297,6 @@ $("bulkImportButton").addEventListener("click", async () => {
 
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
-  alert("目前登入 UID：" + (user?.uid || "尚未登入"));
   // 管理權限必須是 config 白名單中的 Google UID；匿名登入只用於家長訂單識別。
   admin=!!user&&!user.isAnonymous&&ADMIN_UIDS.includes(user.uid)&&!ADMIN_UIDS.some(x=>x.startsWith("請替換"));
   $("googleLogin").classList.toggle("hidden",!!user&&!user.isAnonymous);$("googleLogout").classList.toggle("hidden",!user||user.isAnonymous);
