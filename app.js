@@ -283,6 +283,7 @@ function renderFamilyForm(){
 }
 
 
+
 function renderFamilyOrderOverview() {
   const box = document.getElementById("familyOrderOverview");
   if (!box) return;
@@ -294,48 +295,94 @@ function renderFamilyOrderOverview() {
     return;
   }
 
+  // 取得目前場次的訂單
   const summaries = familyOrderSummaries
     .filter(order => order.eventId === event.id)
     .sort((a, b) =>
-      (a.memberName || "").localeCompare(b.memberName || "", "zh-Hant")
+      (a.memberName || "").localeCompare(
+        b.memberName || "",
+        "zh-Hant"
+      )
     );
 
-  if (!summaries.length) {
-    box.innerHTML = '<p class="helper">目前尚無此場次的訂單，或總覽尚未同步。</p>';
-    return;
-  }
+  // 取得啟用中的團員名單
+  const activeList = activeMembers().sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", "zh-Hant")
+  );
+
+  // 已訂餐的姓名
+  const orderedNames = new Set(
+    summaries.map(order => order.memberName)
+  );
+
+  // 尚未訂餐的團員
+  const notOrdered = activeList.filter(
+    member => !orderedNames.has(member.name)
+  );
 
   box.innerHTML = `
-    <div class="family-overview-list">
-      ${summaries.map(order => {
-        const items = (order.items || [])
-          .filter(item => Number(item.qty || 0) > 0);
+    <h3>已完成訂餐（${summaries.length} 位）</h3>
 
-      const itemText = items.length
-  ? items.map(item => {
-      const unit = item.unit || (
-        item.name.includes("水餃") ? "顆" : "份"
-      );
-      return `${safe(item.name)} × ${Number(item.qty)} ${unit}`;
-    }).join("、")
-  : "尚未選擇餐點";
+    ${
+      summaries.length
+        ? `<div class="family-overview-list">
+            ${summaries.map(order => {
+              const items = (order.items || [])
+                .filter(item => Number(item.qty || 0) > 0);
 
-        const total = Number(order.totalAmount || 0);
+              const itemText = items.length
+                ? items.map(item => {
+                    const unit = item.unit || (
+                      (item.name || "").includes("水餃")
+                        ? "顆" : "份"
+                    );
+                    return `${safe(item.name)} × ${Number(item.qty)} ${unit}`;
+                  }).join("、")
+                : "尚未選擇餐點";
 
-       
-                return `
-          <div class="menu-item family-overview-item">
-            <div>
-              <div class="menu-name">${safe(order.memberName || "未提供姓名")}</div>
-              <div class="small-muted">${itemText}</div>
-              <div class="small-muted">備註：${safe(order.note || "無")}</div>
-            </div>
-            <div class="menu-price">NT$${total.toLocaleString("zh-TW")}</div>
-          </div>
-        `;
-      }).join("")}
-    </div>
-    <p class="helper">共 ${summaries.length} 筆訂單</p>
+              const total = Number(order.totalAmount || 0);
+
+              return `
+                <div class="menu-item family-overview-item">
+                  <div>
+                    <div class="menu-name">
+                      ${safe(order.memberName || "未提供姓名")}
+                    </div>
+                    <div class="small-muted">${itemText}</div>
+                    <div class="small-muted">
+                      備註：${safe(order.note || "無")}
+                    </div>
+                  </div>
+                  <div class="menu-price">
+                    NT$${total.toLocaleString("zh-TW")}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>`
+        : '<p class="helper">目前還沒有人訂餐。</p>'
+    }
+
+    <p class="helper">共 ${summaries.length} 位已訂餐</p>
+
+    <hr>
+
+    <h3>尚未訂餐（${notOrdered.length} 位）</h3>
+
+    ${
+      notOrdered.length
+        ? `<div class="family-overview-list">
+            ${notOrdered.map(member => `
+              <div class="menu-item">
+                <span class="menu-name">
+                  ${safe(member.name)}
+                </span>
+                <span class="small-muted">尚未訂餐</span>
+              </div>
+            `).join("")}
+          </div>`
+        : '<p class="helper">太好了！所有團員都已完成訂餐。</p>'
+    }
   `;
 }
 
