@@ -931,6 +931,7 @@ async function submitOrder(){
 
   if(!auth.currentUser) await signInAnonymously(auth);
 console.log("目前登入 UID：", auth.currentUser?.uid);
+console.log("訂單建立者 UID：", existing?.ownerUid);
 console.log("目前團員 ID：", m.id);
 console.log("目前場次 ID：", e.id);
 console.log("訂單 ID：", `${e.id}_${m.id}`);
