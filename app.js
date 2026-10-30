@@ -1196,16 +1196,8 @@ async function closeEvent(){const e=selectedAdminEvent();if(!e)return;if(!confir
 function switchView(id){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===id));document.querySelectorAll(".view").forEach(v=>v.classList.toggle("hidden",v.id!==id));}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
 
-$("familyEvent").addEventListener("change", () => {
-  renderFamilyForm();
-  updateSubmitOrderButton();
-});
-
-$("familyMember").addEventListener("change", () => {
-  renderFamilyForm();
-  updateSubmitOrderButton();
-});
-
+$("familyEvent").addEventListener("change", renderFamilyForm);
+$("familyMember").addEventListener("change", renderFamilyForm);
 $("submitOrder").addEventListener("click", submitOrder);
 
 $("googleLogin").addEventListener("click",async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){alert("Google 登入失敗："+e.message);}});$("googleLogout").addEventListener("click",()=>signOut(auth));
