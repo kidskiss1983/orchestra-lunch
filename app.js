@@ -243,24 +243,7 @@ function renderFamilyForm(){
   }
 
   const existing = ownOrder(e.id, memberId);
-  console.log("=== 訂單比對診斷 ===");
-console.log("目前場次：", e.id);
-console.log("目前團員：", memberId);
-
-console.table(orders.map(o => ({
-  訂單ID: o.id,
-  場次ID: o.eventId,
-  團員ID: o.memberId,
-  團員姓名: o.memberName
-})));
-
-console.log("找到的原訂單：", existing);
-  console.log("目前場次 ID：", e.id);
-console.log("目前團員 ID：", memberId);
-console.log("目前 orders 筆數：", orders.length);
-console.log("符合場次及團員的訂單：",
-  orders.filter(o => o.eventId === e.id && o.memberId === memberId)
-);
+  
  
   box.innerHTML = e.items.map(it => {
     const prev = existing?.items?.find(x => x.itemId === it.id);
@@ -297,9 +280,6 @@ console.log("符合場次及團員的訂單：",
 
   $("familyNote").value = existing?.note || "";
   $("submitOrder").disabled = !isOpen(e);
-  console.log("場次是否開放：", isOpen(e));
-  console.log("目前選取團員：", memberId);
-  console.log("目前找到的訂單：", existing);
   $("submitOrder").textContent = existing ? "更新我的訂單" : "送出訂單";
 }
 
