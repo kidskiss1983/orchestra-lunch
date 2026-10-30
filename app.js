@@ -374,7 +374,7 @@ ${notOrdered.length
     ? `<div class="family-overview-list">
         ${notOrdered.map(member => `
           <span class="not-ordered-name">
-            ${safe(member.name)}（尚未訂餐）
+            ${safe(member.name)}
           </span>
         `).join("、")}
       </div>`
