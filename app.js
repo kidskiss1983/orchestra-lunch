@@ -1297,6 +1297,8 @@ $("bulkImportButton").addEventListener("click", async () => {
 
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
+  console.log("目前 currentUser UID：", currentUser?.uid);
+  console.log("目前 auth UID：", auth.currentUser?.uid);
   // 管理權限必須是 config 白名單中的 Google UID；匿名登入只用於家長訂單識別。
   admin=!!user&&!user.isAnonymous&&ADMIN_UIDS.includes(user.uid)&&!ADMIN_UIDS.some(x=>x.startsWith("請替換"));
   $("googleLogin").classList.toggle("hidden",!!user&&!user.isAnonymous);$("googleLogout").classList.toggle("hidden",!user||user.isAnonymous);
