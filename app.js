@@ -1299,6 +1299,7 @@ onAuthStateChanged(auth,async user=>{
   currentUser=user;
   // 管理權限必須是 config 白名單中的 Google UID；匿名登入只用於家長訂單識別。
   admin=!!user&&!user.isAnonymous&&ADMIN_UIDS.includes(user.uid)&&!ADMIN_UIDS.some(x=>x.startsWith("請替換"));
+  $("adminTab").classList.toggle("hidden", !admin);
   $("googleLogin").classList.toggle("hidden",!!user&&!user.isAnonymous);$("googleLogout").classList.toggle("hidden",!user||user.isAnonymous);
   $("adminTools").classList.toggle("hidden",!admin);$("adminBadge").textContent=admin?"管理者已授權":user&&!user.isAnonymous?"尚未授權":"尚未登入";
   if(user&&!user.isAnonymous&&!admin){$("uidNotice").classList.remove("hidden");$("uidNotice").textContent=`目前 Google 帳號 UID：${user.uid}。請將此 UID 加入 firebase-config.js 與 firestore.rules 的管理者清單，再重新部署。`;}
