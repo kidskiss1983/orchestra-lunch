@@ -938,17 +938,9 @@ console.log("訂單 ID：", `${e.id}_${m.id}`);
   const id = `${e.id}_${m.id}`;
   const existing = orders.find(o => o.id === id);
 
-  const payload = {
-    eventId: e.id,
-    eventName: e.name,
-    eventDate: e.date,
-    memberId: m.id,
-    memberName: m.name,
-    items: chosen,
-    note: $("familyNote").value.trim(),
-    ownerUid: existing?.ownerUid || auth.currentUser.uid,
-    updatedAt: serverTimestamp()
-  };
+ console.log("目前登入 UID：", auth.currentUser?.uid);
+console.log("訂單建立者 UID：", existing ? existing.ownerUid : "找不到既有訂單");
+console.log("目前訂單 ID：", id);
 
   try{
     if(existing && existing.ownerUid !== auth.currentUser.uid){
