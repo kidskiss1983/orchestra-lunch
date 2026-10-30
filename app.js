@@ -1205,14 +1205,6 @@ function switchView(id){
   );
 }
 
-  document.querySelectorAll(".tab").forEach(b=>{
-    b.classList.toggle("active", b.dataset.view === id);
-  });
-
-  document.querySelectorAll(".view").forEach(v=>{
-    v.classList.toggle("hidden", v.id !== id);
-  });
-
 document.querySelectorAll(".tab").forEach(b=>{
   b.addEventListener("click",async()=>{
     const id = b.dataset.view;
@@ -1240,22 +1232,6 @@ document.querySelectorAll(".tab").forEach(b=>{
     switchView(id);
   });
 });
-
-$("familyEvent").addEventListener("change", renderFamilyForm);
-$("familyMember").addEventListener("change", renderFamilyForm);
-$("submitOrder").addEventListener("click", submitOrder);
-
-$("googleLogin").addEventListener("click",async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){alert("Google 登入失敗："+e.message);}});$("googleLogout").addEventListener("click",()=>signOut(auth));
-
-$("loadDeleteOrdersButton").addEventListener("click", () => {
-  if (!admin) {
-    alert("請先登入管理者帳號。");
-    return;
-  }
-
-  renderDeleteOrdersList();
-});
-
 $("deleteSelectedOrdersButton").addEventListener(
   "click",
   deleteSelectedOrders
