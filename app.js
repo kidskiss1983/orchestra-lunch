@@ -367,7 +367,9 @@ function renderFamilyOrderOverview() {
 
     <hr>
 
-    <h3>尚未訂餐（${notOrdered.length} 位）</h3>
+    <h3 style="color: #dc2626;">
+  尚未訂餐（${notOrdered.length} 位）
+</h3>
 
     
 ${notOrdered.length
