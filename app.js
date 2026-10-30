@@ -947,17 +947,16 @@ console.log("訂單 ID：", `${e.id}_${m.id}`);
   const existing = orders.find(o => o.id === id);
 
 const payload = {
-    eventId: e.id,
-    eventName: e.name,
-    eventDate: e.date,
-    memberId: m.id,
-    memberName: m.name,
-    items: chosen,
-    note: $("familyNote").value.trim(),
-    ownerUid: existing?.ownerUid || auth.currentUser.uid,
-    updatedAt: serverTimestamp()
-  };
-
+  eventId: e.id,
+  eventName: e.name,
+  eventDate: e.date,
+  memberId: m.id,
+  memberName: m.name,
+  items: chosen,
+  note: $("familyNote").value.trim(),
+  ownerUid: existing?.ownerUid || auth.currentUser.uid,
+  updatedAt: serverTimestamp()
+};
   try{
     
     if(existing){
