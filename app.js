@@ -1261,6 +1261,10 @@ $("deleteSelectedOrdersButton").addEventListener(
 $("newItemButton").addEventListener("click",()=>{draftItems.push({id:crypto.randomUUID(),name:"",price:0});renderItemEditor();});
 $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("menuText").value);if(!found.length)return alert("未解析到餐點。請使用「餐點名稱 價格」格式，或手動新增。");draftItems=found;renderItemEditor();alert(`解析到 ${found.length} 個餐點，請逐項校正。`);});
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
+// 家長切換訂餐場次
+$("familyEvent").addEventListener("change", () => {
+  renderFamilyForm();
+});
 $("adminEvent").addEventListener("change", () => {
   const e = selectedAdminEvent();
 
