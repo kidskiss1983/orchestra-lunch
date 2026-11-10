@@ -130,7 +130,11 @@ function renderEventOptions(){
   $("adminEvent").innerHTML=events.length?events.map(e=>`<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}${e.status!=="open"?"（已關閉）":""}</option>`).join(""):'<option value="">尚無場次</option>';
   if(events.some(e=>e.id===old))$("adminEvent").value=old;
 }
-
+// 取得管理專區目前選取的場次
+function selectedAdminEvent() {
+  const eventId = $("adminEvent").value;
+  return events.find(e => e.id === eventId) || null;
+}
 
 
 function getSurnameStroke(name) {
