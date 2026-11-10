@@ -122,26 +122,37 @@ function startListeners(){
   }
 }
 
-function renderEventOptions(){
-  const open=events.filter(isOpen), prev=$("familyEvent").value;
-  $("familyEvent").innerHTML=open.length?open.map(e=>`<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}｜${safe(e.restaurant||"餐廳未填")}</option>`).join(""):'<option value="">目前沒有開放訂餐的場次</option>';
-  if(open.some(e=>e.id===prev))$("familyEvent").value=prev;
-  const old=$("adminEvent").value;
-  $("adminEvent").innerHTML=events.length?events.map(e=>`<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}${e.status!=="open"?"（已關閉）":""}</option>`).join(""):'<option value="">尚無場次</option>';
-  if(events.some(e=>e.id===old))$("adminEvent").value=old;
-}
-// 取得家長目前選取的訂餐場次
-function selectedEvent() {
-  const eventId = $("familyEvent").value;
-  return events.find(e => e.id === eventId) || null;
-}
-// 取得管理專區目前選取的場次
-function selectedAdminEvent() {
-  const eventId = $("adminEvent").value;
-  return events.find(e => e.id === eventId) || null;
-}
+function renderEventOptions() {
+  const familySelect = $("familyEvent");
+  const adminSelect = $("adminEvent");
 
+  const oldFamily = familySelect.value;
+  const oldAdmin = adminSelect.value;
 
+  const openEvents = events.filter(isOpen);
+
+  // 更新家長場次選單
+  familySelect.innerHTML = openEvents.length
+    ? openEvents.map(e =>
+        `<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}｜${safe(e.restaurant || "餐廳未填")}</option>`
+      ).join("")
+    : '<option value="">目前沒有開放訂餐的場次</option>';
+
+  if (openEvents.some(e => e.id === oldFamily)) {
+    familySelect.value = oldFamily;
+  }
+
+  // 更新管理者場次選單
+  adminSelect.innerHTML = events.length
+    ? events.map(e =>
+        `<option value="${safe(e.id)}">${safe(e.date)}｜${safe(e.name)}${e.status !== "open" ? "（已關閉）" : ""}</option>`
+      ).join("")
+    : '<option value="">尚無場次</option>';
+
+  if (events.some(e => e.id === oldAdmin)) {
+    adminSelect.value = oldAdmin;
+  }
+}
 function getSurnameStroke(name) {
   const surname = String(name || "").trim().charAt(0);
 
