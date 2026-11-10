@@ -1257,7 +1257,18 @@ $("deleteSelectedOrdersButton").addEventListener(
 $("newItemButton").addEventListener("click",()=>{draftItems.push({id:crypto.randomUUID(),name:"",price:0});renderItemEditor();});
 $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("menuText").value);if(!found.length)return alert("未解析到餐點。請使用「餐點名稱 價格」格式，或手動新增。");draftItems=found;renderItemEditor();alert(`解析到 ${found.length} 個餐點，請逐項校正。`);});
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
-$("adminEvent").addEventListener("change",renderSummary);$("printButton").addEventListener("click",()=>window.print());$("excelButton").addEventListener("click",exportExcel);$("closeEventButton").addEventListener("click",closeEvent);
+$("adminEvent").addEventListener("change", () => {
+  const e = selectedAdminEvent();
+
+  // 切換場次時，載入該場次原有菜單
+  draftItems = (e?.items || []).map(i => ({ ...i }));
+
+  // 更新菜單編輯畫面
+  renderItemEditor();
+
+  // 更新訂單統計
+  renderSummary();
+});$("printButton").addEventListener("click",()=>window.print());$("excelButton").addEventListener("click",exportExcel);$("closeEventButton").addEventListener("click",closeEvent);
 
 $("deleteEventButton").addEventListener(
   "click",
