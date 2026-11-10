@@ -704,7 +704,27 @@ function renderDeleteOrdersList() {
     });
   });
 }
+// 管理員載入訂單清單
+$("loadDeleteOrdersButton").addEventListener("click", async () => {
+  if (!admin) {
+    alert("只有管理員可以載入訂單清單。");
+    return;
+  }
 
+  const button = $("loadDeleteOrdersButton");
+  button.disabled = true;
+  button.textContent = "正在載入...";
+
+  try {
+    renderDeleteOrdersList();
+    button.textContent = "重新載入訂單清單";
+  } catch (error) {
+    alert("載入訂單清單失敗：" + error.message);
+    button.textContent = "載入訂單清單";
+  } finally {
+    button.disabled = false;
+  }
+});
 async function deleteSelectedOrders() {
   if (!admin || !auth.currentUser || auth.currentUser.isAnonymous) {
     alert("只有已授權的管理者可以刪除訂單。");
