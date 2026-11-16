@@ -44,11 +44,52 @@
       <div class="subpanel"><h3>一、建立或編輯加練場次</h3>
         <input id="editingEventId" type="hidden">
         <div class="form-grid"><div><label for="eventName">場次名稱</label><input id="eventName" placeholder="例如：週六弦樂團加練"></div><div><label for="eventDate">日期</label><input id="eventDate" type="date"></div><div><label for="eventDeadline">訂餐截止時間</label><input id="eventDeadline" type="datetime-local"></div><div><label for="restaurantName">餐廳名稱</label><input id="restaurantName" placeholder="餐廳名稱"></div></div>
-        <div class="actions"><button id="loadEditButton" class="button secondary">載入選取場次編輯</button><button id="newItemButton" class="button secondary">＋手動新增餐點</button></div>
-        <label for="menuText">菜單文字（手動輸入或貼上）</label><textarea id="menuText" rows="5" placeholder="例如：\n雞腿便當 100\n排骨便當 110\n素食便當 100"></textarea>
-        <div class="actions"><button id="parseTextButton" class="button secondary">從文字解析餐點</button><button id="saveEventButton" class="button primary">儲存場次與菜單</button><button id="resetEventButton" class="button ghost">清空表單</button></div>
-        <p class="fineprint">請確認每行包含餐點名稱與價格，再解析並核對餐點清單。</p>
-        <div id="menuEditor" class="menu-editor"></div>
+        
+<div class="actions">
+  <button id="loadEditButton" class="button secondary">
+    載入選取場次編輯
+  </button>
+</div>
+
+<details class="menu-editor-details">
+  <summary>菜單修改區（點擊展開／收摺）</summary>
+
+  <div class="menu-editor-content">
+
+    <div class="actions">
+      <button id="newItemButton" class="button secondary">
+        ＋手動新增餐點
+      </button>
+    </div>
+
+    <label for="menuText">菜單文字（手動輸入或貼上）</label>
+    <textarea id="menuText" rows="5"
+      placeholder="例如：&#10;雞腿便當 100&#10;排骨便當 110&#10;素食便當 100"></textarea>
+
+    <div class="actions">
+      <button id="parseTextButton" class="button secondary">
+        從文字解析餐點
+      </button>
+    </div>
+
+    <p class="fineprint">
+      請確認每行包含餐點名稱與價格，再解析並核對餐點清單。
+    </p>
+
+    <div id="menuEditor" class="menu-editor"></div>
+
+  </div>
+</details>
+
+<div class="actions">
+  <button id="saveEventButton" class="button primary">
+    儲存場次與菜單
+  </button>
+  <button id="resetEventButton" class="button ghost">
+    清空表單
+  </button>
+</div>
+
       </div>
       
 <div class="subpanel"><h3>二、訂單統計與報表</h3><label for="adminEvent">選擇場次</label><select id="adminEvent"><option value="">尚無場次</option></select><div id="summary"></div><div class="actions print-hide"><button id="printButton" class="button primary">列印／另存 PDF</button><button id="excelButton" class="button secondary">下載 Excel</button><button id="closeEventButton" class="button danger">關閉訂餐</button>
