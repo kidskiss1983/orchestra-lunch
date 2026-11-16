@@ -135,3 +135,45 @@
     margin: 12mm;
   }
 }
+
+/* 管理員菜單修改區收摺 */
+.menu-editor-details {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #faf9f5;
+  overflow: hidden;
+}
+
+.menu-editor-details summary {
+  padding: 14px;
+  cursor: pointer;
+  font-weight: 750;
+  color: var(--green);
+  list-style-position: inside;
+}
+
+.menu-editor-details[open] summary {
+  border-bottom: 1px solid var(--line);
+  background: #eeeae0;
+}
+
+.menu-editor-content {
+  padding: 12px;
+  min-width: 0;
+}
+
+.menu-editor-details .editor-row {
+  min-width: 0;
+}
+
+@media(max-width:600px) {
+  .menu-editor-content {
+    padding: 10px;
+  }
+
+  .menu-editor-details summary {
+    padding: 13px;
+    font-size: 15px;
+  }
+}
