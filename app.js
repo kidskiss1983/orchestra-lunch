@@ -1260,11 +1260,13 @@ document.querySelectorAll(".tab").forEach(b=>{
 
     if(id === "adminView" && !admin){
       try{
-        const result = await signInWithPopup(
-          auth,
-          new GoogleAuthProvider()
-        );
+      const result = await signInWithPopup(
+  auth,
+  new GoogleAuthProvider()
+);
 
+// 暫時顯示 Google 帳號 UID
+alert("你的 Google UID：\n" + result.user.uid);
         if(ADMIN_UIDS.includes(result.user.uid)){
           switchView("adminView");
         }else{
