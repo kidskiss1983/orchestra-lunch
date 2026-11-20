@@ -1328,32 +1328,9 @@ $("menuImageFile").addEventListener("change", () => {
 
 // AI 菜單辨識結果暫存
 let recognizedMenuItems = [];
-let pendingMenuAiRequestId = null;
 
-// 接收 Apps Script 回傳結果
-window.addEventListener("message", event => {
-  const bridge = $("menuAiBridge");
-
-  if (!bridge || event.source !== bridge.contentWindow) return;
-
-  const message = event.data;
-
-  if (!message || message.type !== "menu-ai-result") return;
-
-  if (message.requestId !== pendingMenuAiRequestId) return;
-
-  pendingMenuAiRequestId = null;
-
-  $("recognizeMenuButton").disabled = false;
-
-  const result = message.result;
-
-  if (!result || !result.success) {
-    $("menuRecognitionStatus").textContent =
-      result?.message || "菜單辨識失敗，請稍後再試。";
-    return;
-  }
-
+// 顯示 AI 辨識結果
+function showRecognizedMenu(result) {
   recognizedMenuItems = Array.isArray(result.items)
     ? result.items
     : [];
@@ -1364,9 +1341,8 @@ window.addEventListener("message", event => {
     return;
   }
 
-  // 顯示辨識結果
   $("menuRecognitionList").innerHTML =
-    recognizedMenuItems.map((item, index) => `
+    recognizedMenuItems.map(item => `
       <div class="editor-row">
         <div>
           <strong>${safe(item.name || "未辨識名稱")}</strong>
@@ -1379,7 +1355,6 @@ window.addEventListener("message", event => {
               : ""
           }
         </div>
-
         <div>
           <strong>價格：${
             Number.isFinite(Number(item.price))
@@ -1394,11 +1369,13 @@ window.addEventListener("message", event => {
 
   $("menuRecognitionStatus").textContent =
     `成功辨識 ${recognizedMenuItems.length} 個餐點，請檢查名稱及價格。`;
-});
+}
 
 
 // 點擊 AI 辨識菜單
 $("recognizeMenuButton").addEventListener("click", async () => {
+  const button = $("recognizeMenuButton");
+
   try {
     if (!currentUser || currentUser.isAnonymous || !admin) {
       alert("只有管理員可以使用 AI 菜單辨識。");
@@ -1414,13 +1391,14 @@ $("recognizeMenuButton").addEventListener("click", async () => {
 
     const bridge = $("menuAiBridge");
 
-    if (!bridge || !bridge.contentWindow) {
+    if (!bridge) {
       alert("AI 辨識服務尚未載入，請重新整理網頁。");
       return;
     }
 
-    $("recognizeMenuButton").disabled = true;
-    $("menuRecognitionStatus").textContent = "正在辨識菜單，請稍候……";
+    button.disabled = true;
+    $("menuRecognitionStatus").textContent =
+      "正在準備圖片，請稍候……";
     $("menuRecognitionResults").classList.add("hidden");
 
     recognizedMenuItems = [];
@@ -1444,26 +1422,84 @@ $("recognizeMenuButton").addEventListener("click", async () => {
       Date.now().toString() + "-" +
       Math.random().toString(36).slice(2);
 
-    pendingMenuAiRequestId = requestId;
+    $("menuRecognitionStatus").textContent =
+      "圖片已準備完成，正在送出 AI 辨識……";
 
-    // 傳送至 Apps Script
-    bridge.contentWindow.postMessage({
-      type: "menu-ai-request",
-      requestId: requestId,
-      payload: {
-        idToken: idToken,
-        image: base64Image,
-        mimeType: file.type
-      }
-    }, "*");
+    // 建立表單，透過 POST 傳送至 Apps Script
+    const form = document.createElement("form");
 
-  } catch (error) {
-    pendingMenuAiRequestId = null;
+    form.method = "POST";
+    form.action =
+      "https://script.google.com/macros/s/AKfycbxyd3D9X_X25IXQILQ4sRFJXu34mApwwPLf2uM6TlluLGvadu6b3nBCRlTdteq6gsK9gQ/exec";
+    form.target = "menuAiBridge";
+    form.style.display = "none";
 
-    $("recognizeMenuButton").disabled = false;
+    const fields = {
+      idToken: idToken,
+      image: base64Image,
+      mimeType: file.type,
+      requestId: requestId
+    };
+
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
 
     $("menuRecognitionStatus").textContent =
+      "AI 正在辨識菜單，請稍候……";
+
+    // 每 2 秒查詢一次 Firestore，最多等待 3 分鐘
+    let completed = false;
+
+    for (let i = 0; i < 90; i++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const jobRef = doc(db, "menuAiJobs", requestId);
+      const jobSnapshot = await getDoc(jobRef);
+
+      if (!jobSnapshot.exists()) {
+        continue;
+      }
+
+      const job = jobSnapshot.data();
+
+      // 確認結果屬於目前登入的管理員
+      if (job.ownerUid !== currentUser.uid) {
+        throw new Error("辨識結果帳號不符，無法讀取。");
+      }
+
+      if (job.status === "error") {
+        throw new Error(job.message || "AI 菜單辨識失敗。");
+      }
+
+      if (job.status === "done") {
+        showRecognizedMenu({
+          items: job.items || []
+        });
+
+        completed = true;
+        break;
+      }
+    }
+
+    if (!completed) {
+      throw new Error("等待辨識結果逾時，請稍後重新嘗試。");
+    }
+
+  } catch (error) {
+    $("menuRecognitionStatus").textContent =
       "辨識發生錯誤：" + error.message;
+
+  } finally {
+    button.disabled = false;
   }
 });
 
