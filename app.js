@@ -1289,6 +1289,43 @@ $("deleteSelectedOrdersButton").addEventListener(
 );
 $("newItemButton").addEventListener("click",()=>{draftItems.push({id:crypto.randomUUID(),name:"",price:0});renderItemEditor();});
 $("parseTextButton").addEventListener("click",()=>{const found=parseMenuText($("menuText").value);if(!found.length)return alert("未解析到餐點。請使用「餐點名稱 價格」格式，或手動新增。");draftItems=found;renderItemEditor();alert(`解析到 ${found.length} 個餐點，請逐項校正。`);});
+
+// 菜單圖片預覽
+$("menuImageFile").addEventListener("change", () => {
+  const file = $("menuImageFile").files[0];
+
+  if (!file) return;
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    alert("目前只支援 JPG、PNG、WEBP 圖片。");
+    $("menuImageFile").value = "";
+    $("menuImagePreview").classList.add("hidden");
+    return;
+  }
+
+  if (file.size > 7 * 1024 * 1024) {
+    alert("圖片太大，請選擇 7MB 以下的圖片。");
+    $("menuImageFile").value = "";
+    $("menuImagePreview").classList.add("hidden");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    $("menuImagePreviewImg").src = reader.result;
+    $("menuImagePreview").classList.remove("hidden");
+  };
+
+  reader.readAsDataURL(file);
+});
+
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
 // 家長切換訂餐場次
 $("familyEvent").addEventListener("change", () => {
