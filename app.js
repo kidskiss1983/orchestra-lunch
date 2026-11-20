@@ -1430,7 +1430,7 @@ $("recognizeMenuButton").addEventListener("click", async () => {
 
     form.method = "POST";
     form.action =
-      "https://script.google.com/macros/s/AKfycbxyd3D9X_X25IXQILQ4sRFJXu34mApwwPLf2uM6TlluLGvadu6b3nBCRlTdteq6gsK9gQ/exec";
+      "https://script.google.com/macros/s/AKfycbxyd3D9X9_B25IXQILQ4sRFJXu34mApwwPLf2uM6TlluLGvadu6b3nBCRlTdteq6gsK9gQ/exec";
     form.target = "menuAiBridge";
     form.style.display = "none";
 
