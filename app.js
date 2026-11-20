@@ -1326,6 +1326,183 @@ $("menuImageFile").addEventListener("change", () => {
   reader.readAsDataURL(file);
 });
 
+// AI 菜單辨識結果暫存
+let recognizedMenuItems = [];
+let pendingMenuAiRequestId = null;
+
+// 接收 Apps Script 回傳結果
+window.addEventListener("message", event => {
+  const bridge = $("menuAiBridge");
+
+  if (!bridge || event.source !== bridge.contentWindow) return;
+
+  const message = event.data;
+
+  if (!message || message.type !== "menu-ai-result") return;
+
+  if (message.requestId !== pendingMenuAiRequestId) return;
+
+  pendingMenuAiRequestId = null;
+
+  $("recognizeMenuButton").disabled = false;
+
+  const result = message.result;
+
+  if (!result || !result.success) {
+    $("menuRecognitionStatus").textContent =
+      result?.message || "菜單辨識失敗，請稍後再試。";
+    return;
+  }
+
+  recognizedMenuItems = Array.isArray(result.items)
+    ? result.items
+    : [];
+
+  if (!recognizedMenuItems.length) {
+    $("menuRecognitionStatus").textContent =
+      "沒有辨識到餐點，請確認圖片是否清晰。";
+    return;
+  }
+
+  // 顯示辨識結果
+  $("menuRecognitionList").innerHTML =
+    recognizedMenuItems.map((item, index) => `
+      <div class="editor-row">
+        <div>
+          <strong>${safe(item.name || "未辨識名稱")}</strong>
+          <div class="fineprint">
+            分類：${safe(item.category || "未分類")}
+          </div>
+          ${
+            item.uncertain
+              ? '<div class="fineprint" style="color:#d97706;">⚠️ 此項辨識不確定，請人工確認</div>'
+              : ""
+          }
+        </div>
+
+        <div>
+          <strong>價格：${
+            Number.isFinite(Number(item.price))
+              ? Number(item.price)
+              : "未辨識"
+          }</strong>
+        </div>
+      </div>
+    `).join("");
+
+  $("menuRecognitionResults").classList.remove("hidden");
+
+  $("menuRecognitionStatus").textContent =
+    `成功辨識 ${recognizedMenuItems.length} 個餐點，請檢查名稱及價格。`;
+});
+
+
+// 點擊 AI 辨識菜單
+$("recognizeMenuButton").addEventListener("click", async () => {
+  try {
+    if (!currentUser || currentUser.isAnonymous || !admin) {
+      alert("只有管理員可以使用 AI 菜單辨識。");
+      return;
+    }
+
+    const file = $("menuImageFile").files[0];
+
+    if (!file) {
+      alert("請先選擇菜單圖片。");
+      return;
+    }
+
+    const bridge = $("menuAiBridge");
+
+    if (!bridge || !bridge.contentWindow) {
+      alert("AI 辨識服務尚未載入，請重新整理網頁。");
+      return;
+    }
+
+    $("recognizeMenuButton").disabled = true;
+    $("menuRecognitionStatus").textContent = "正在辨識菜單，請稍候……";
+    $("menuRecognitionResults").classList.add("hidden");
+
+    recognizedMenuItems = [];
+
+    // 取得 Firebase 登入憑證
+    const idToken = await currentUser.getIdToken();
+
+    // 將圖片轉換成 Base64
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("圖片讀取失敗"));
+
+      reader.readAsDataURL(file);
+    });
+
+    const base64Image = dataUrl.split(",")[1];
+
+    const requestId =
+      Date.now().toString() + "-" +
+      Math.random().toString(36).slice(2);
+
+    pendingMenuAiRequestId = requestId;
+
+    // 傳送至 Apps Script
+    bridge.contentWindow.postMessage({
+      type: "menu-ai-request",
+      requestId: requestId,
+      payload: {
+        idToken: idToken,
+        image: base64Image,
+        mimeType: file.type
+      }
+    }, "*");
+
+  } catch (error) {
+    pendingMenuAiRequestId = null;
+
+    $("recognizeMenuButton").disabled = false;
+
+    $("menuRecognitionStatus").textContent =
+      "辨識發生錯誤：" + error.message;
+  }
+});
+
+
+// 確認匯入 AI 辨識結果
+$("applyRecognizedMenuButton").addEventListener("click", () => {
+  if (!recognizedMenuItems.length) {
+    alert("目前沒有可匯入的辨識結果。");
+    return;
+  }
+
+  const validItems = recognizedMenuItems
+    .filter(item => item.name && String(item.name).trim())
+    .map(item => ({
+      name: String(item.name).trim(),
+      unit: "份",
+      price: Math.max(0, Number(item.price) || 0)
+    }));
+
+  if (!validItems.length) {
+    alert("沒有有效的餐點名稱，請重新辨識。");
+    return;
+  }
+
+  // 匯入原有餐點編輯器
+  draftItems = validItems;
+
+  renderItemEditor();
+
+  $("menuRecognitionStatus").textContent =
+    `已匯入 ${validItems.length} 個餐點，請檢查並修改後再儲存。`;
+
+  $("menuRecognitionResults").classList.add("hidden");
+
+  alert(
+    `已匯入 ${validItems.length} 個餐點！\n請確認名稱與價格，再使用原本的儲存功能。`
+  );
+});
+
 $("saveEventButton").addEventListener("click",saveEvent);$("resetEventButton").addEventListener("click",resetEventForm);$("loadEditButton").addEventListener("click",loadEventForEdit);
 // 家長切換訂餐場次
 $("familyEvent").addEventListener("change", () => {
