@@ -62,6 +62,58 @@
       </button>
     </div>
 
+<div class="menu-image-recognition">
+  <h3>AI 菜單圖片辨識</h3>
+
+  <p class="fineprint">
+    上傳餐廳菜單圖片，由 AI 協助辨識餐點名稱及價格。
+  </p>
+
+  <label for="menuImageFile">選擇菜單圖片</label>
+  <input
+    type="file"
+    id="menuImageFile"
+    accept="image/jpeg,image/png,image/webp"
+  >
+
+  <div id="menuImagePreview" class="hidden">
+    <img
+      id="menuImagePreviewImg"
+      alt="菜單圖片預覽"
+      style="max-width:100%;max-height:300px;object-fit:contain;"
+    >
+  </div>
+
+  <div class="actions">
+    <button
+      type="button"
+      id="recognizeMenuButton"
+      class="button secondary"
+    >
+      AI 辨識菜單
+    </button>
+  </div>
+
+  <p id="menuRecognitionStatus" class="fineprint"></p>
+
+  <div id="menuRecognitionResults" class="hidden">
+    <h4>辨識結果預覽</h4>
+    <div id="menuRecognitionList"></div>
+
+    <div class="actions">
+      <button
+        type="button"
+        id="applyRecognizedMenuButton"
+        class="button primary"
+      >
+        確認匯入餐點
+      </button>
+    </div>
+  </div>
+</div>
+
+<hr>
+
     <label for="menuText">菜單文字（手動輸入或貼上）</label>
     <textarea id="menuText" rows="5"
       placeholder="例如：&#10;雞腿便當 100&#10;排骨便當 110&#10;素食便當 100"></textarea>
